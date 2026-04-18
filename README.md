@@ -109,20 +109,42 @@ is for thinking, not for trading.
 
 ---
 
-## Setup
+## Install
+
+### Recommended — `uv tool` (global, no project needed)
 
 ```bash
+uv tool install git+https://github.com/xgzlucario/augur.git
+
+augur list-personas   # verify — should show 15 masters
+```
+
+Installs the `augur` command globally in an isolated environment. Upgrade
+anytime with `uv tool install --force --reinstall git+https://github.com/xgzlucario/augur.git`.
+
+Not using [`uv`](https://docs.astral.sh/uv/)? `pipx install git+https://github.com/xgzlucario/augur.git` works the same way.
+
+### Developer — editable install from source
+
+```bash
+git clone https://github.com/xgzlucario/augur.git
 cd augur
 python3 -m venv .venv
 .venv/bin/pip install -e .
 
-cp .env.example .env              # fill in keys + model IDs
-.venv/bin/augur list-personas     # verify install
+cp .env.example .env                  # fill in keys + model IDs
+.venv/bin/augur list-personas         # verify — should show 15 masters
 ```
 
 Python 3.11+ required.
 
-### `.env`
+---
+
+## Configure
+
+`augur` reads credentials and model IDs from the environment. The simplest
+path: drop a `.env` file in the directory you run `augur` from — it is
+auto-loaded on each invocation.
 
 ```env
 # Required: OpenAI-compatible LLM endpoint
@@ -136,6 +158,10 @@ OPENAI_MODEL_SYNTHESIS=gpt-4o     # runs 2× (snapshot + aggregator) — pick qu
 # Optional: Exa web search (grounds snapshot in live data)
 EXA_API_KEY=                      # get one at https://exa.ai
 ```
+
+Prefer exporting the variables directly? `export OPENAI_API_KEY=...` etc. in
+your shell rc also works. Reports are written to `./reports/` under whatever
+directory you invoke `augur` from.
 
 ---
 

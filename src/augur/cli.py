@@ -308,8 +308,20 @@ async def _pipeline(
 # ---------- Commands ----------
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parent.parent.parent
+def _default_personas_dir() -> Path:
+    """Locate the personas/ directory across install modes.
+
+    Priority:
+      1. Bundled inside the installed package (src/augur/personas in the wheel,
+         placed there by hatch's force-include).
+      2. Sibling of the source tree — editable / dev install where personas/
+         lives at the repo root.
+    """
+    bundled = Path(__file__).resolve().parent / "personas"
+    if bundled.is_dir():
+        return bundled
+    # Fall back to the repo-root personas/ (editable install / running from source)
+    return Path(__file__).resolve().parent.parent.parent / "personas"
 
 
 @app.command()
@@ -338,9 +350,8 @@ def run(
     )
 
     ticker = ticker.upper()
-    repo = _repo_root()
-    personas_dir = personas_dir or (repo / "personas")
-    out = out or (repo / "reports")
+    personas_dir = personas_dir or _default_personas_dir()
+    out = out or (Path.cwd() / "reports")
     load_dotenv()  # ensure EXA_API_KEY visible before we check it
     search_on = (not no_search) and bool(os.environ.get("EXA_API_KEY"))
 
@@ -372,7 +383,7 @@ def list_personas(
     ] = None,
 ) -> None:
     """List all loaded personas, grouped by school."""
-    personas_dir = personas_dir or (_repo_root() / "personas")
+    personas_dir = personas_dir or _default_personas_dir()
     personas = load_all(personas_dir)
     by_school: dict[str, list] = {}
     for p in personas:

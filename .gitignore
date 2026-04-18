@@ -11,3 +11,4 @@ build/
 reports/*.md
 reports/*.json
 !reports/.gitkeep
+dist/

@@ -24,6 +24,19 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/augur"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"personas" = "augur/personas"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/augur",
+    "personas",
+    "README.md",
+    "README.zh-CN.md",
+    "pyproject.toml",
+    ".env.example",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

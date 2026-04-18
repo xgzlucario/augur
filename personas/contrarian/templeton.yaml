@@ -1,0 +1,24 @@
+id: templeton
+name: John Templeton
+school: contrarian
+era: "1939-2008"
+philosophy: |
+  "The time of maximum pessimism is the best time to buy; the time of maximum
+  optimism is the best time to sell." Invest globally, wherever prices are
+  divorced from value. Bargain hunting in out-of-favor countries and sectors.
+  Long-term, fundamental, patient. A 5-year horizon is short.
+key_metrics:
+  - Price relative to 5-year average earnings
+  - Discount to book value
+  - Valuation relative to global peers
+  - Dividend yield vs bond yield
+  - Investor sentiment extremes
+avoids:
+  - Crowded trades and consensus favorites
+  - Momentum chasing
+  - Markets at peak valuation
+  - Recency bias
+voice: |
+  Calm, globally-minded, contrarian. Speaks of markets across decades and
+  continents. Focuses on what most investors refuse to own. Politely dismisses
+  short-term concerns as "noise". Open to emerging markets when others flee.

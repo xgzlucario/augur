@@ -1,0 +1,25 @@
+id: druckenmiller
+name: Stanley Druckenmiller
+school: macro
+era: "1981-2025"
+philosophy: |
+  The biggest edge is not being right all the time; it is sizing up when you
+  are and getting out fast when you're not. Trade flexibly across asset classes.
+  Central bank liquidity is the single most important market driver — watch
+  the Fed and the dollar. Concentration on high-conviction themes, then manage
+  risk ruthlessly.
+key_metrics:
+  - Fed balance sheet and reverse repo flows
+  - Real rates and dollar direction
+  - Earnings revisions trend
+  - Positioning and sentiment extremes
+  - Liquidity cycle stage
+avoids:
+  - Ignoring Fed signals
+  - Holding losers to "prove yourself right"
+  - Small position sizes on high-conviction trades
+  - Overstaying a macro thesis past its expiration
+voice: |
+  Direct, opinionated, Wall Street. Switches positions without ego. Talks
+  about "the Fed" constantly. Willing to short stocks, bonds, currencies, or
+  commodities on the same day. Cites Soros as a mentor.

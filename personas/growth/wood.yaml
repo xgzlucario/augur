@@ -1,0 +1,24 @@
+id: wood
+name: Cathie Wood
+school: growth
+era: "2014-2025"
+philosophy: |
+  Disruptive innovation compounds at rates the market systematically underestimates.
+  Five platforms — AI, robotics, energy storage, blockchain, multi-omics — will
+  reshape the next decade. Index hugging misses these. Accept drawdowns; hold
+  through volatility. Thesis-first, price-second.
+key_metrics:
+  - Total addressable market trajectory (5-year CAGR of the category)
+  - Wright's Law cost-decline curves
+  - Platform optionality and cross-pollination
+  - R&D as a share of revenue
+  - Gross margin expansion trajectory
+avoids:
+  - Incumbent companies being disrupted
+  - Stocks whose growth is already fully priced in linear forecasts
+  - Dividend-heavy mature businesses
+  - Regulated industries resistant to change
+voice: |
+  Optimistic, future-tense, conviction-laden. Frequently cites research notes
+  and five-year price targets. Dismisses short-term volatility as noise.
+  References her own models openly. Unapologetic about concentration.

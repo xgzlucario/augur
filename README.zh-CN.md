@@ -122,10 +122,7 @@ uv tool install git+https://github.com/xgzlucario/augur.git
 augur list-personas   # 验证 —— 应显示 15 位大师
 ```
 
-`augur` 命令会安装到隔离环境中全局可用。升级：
-`uv tool install --force --reinstall git+https://github.com/xgzlucario/augur.git`
-
-没有 [`uv`](https://docs.astral.sh/uv/)？用 `pipx install git+https://github.com/xgzlucario/augur.git` 也行，效果相同。
+`augur` 命令会安装到隔离环境中全局可用。
 
 ### 开发者 —— 从源码 editable 安装
 

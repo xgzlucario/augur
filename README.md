@@ -119,10 +119,7 @@ uv tool install git+https://github.com/xgzlucario/augur.git
 augur list-personas   # verify — should show 15 masters
 ```
 
-Installs the `augur` command globally in an isolated environment. Upgrade
-anytime with `uv tool install --force --reinstall git+https://github.com/xgzlucario/augur.git`.
-
-Not using [`uv`](https://docs.astral.sh/uv/)? `pipx install git+https://github.com/xgzlucario/augur.git` works the same way.
+Installs the `augur` command globally in an isolated environment.
 
 ### Developer — editable install from source
 

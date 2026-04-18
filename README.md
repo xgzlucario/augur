@@ -137,17 +137,6 @@ OPENAI_MODEL_SYNTHESIS=gpt-4o     # runs 2× (snapshot + aggregator) — pick qu
 EXA_API_KEY=                      # get one at https://exa.ai
 ```
 
-### Example provider configs
-
-| Provider | `OPENAI_BASE_URL` | Example research | Example synthesis |
-|----------|-------------------|------------------|-------------------|
-| OpenAI | _(blank)_ | `gpt-4o-mini` | `gpt-4o` |
-| DeepSeek | `https://api.deepseek.com` | `deepseek-chat` | `deepseek-chat` |
-| Moonshot (ModelVerse) | `https://api.modelverse.cn/v1` | `moonshot/kimi-k2.5` | `moonshot/kimi-k2.5` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.1-8b-instant` | `llama-3.3-70b-versatile` |
-| Together | `https://api.together.xyz/v1` | `meta-llama/Llama-3.1-8B-Instruct-Turbo` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
-| Ollama | `http://localhost:11434/v1` | `llama3.2` | `llama3.1:70b` |
-
 ---
 
 ## Usage

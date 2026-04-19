@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import date
+from typing import Callable
 
 from openai import AsyncOpenAI
 
@@ -194,11 +195,17 @@ async def build_snapshot(
     client: AsyncOpenAI,
     ticker: str,
     search_provider: SearchProvider | None = None,
+    on_queries: Callable[[list[str]], None] | None = None,
+    on_search_results: Callable[[int, int], None] | None = None,
 ) -> Snapshot:
     """Phase 1: produce a market snapshot.
 
     If `search_provider` is given, plan queries → execute search → synthesize
     snapshot from results. Otherwise fall back to LLM-only (training knowledge).
+
+    Callbacks (optional; never break the pipeline if they raise):
+      on_queries(queries) — invoked with the planned query list before search.
+      on_search_results(total_hits, n_queries) — invoked after search completes.
     """
     as_of = date.today().isoformat()
 
@@ -209,10 +216,20 @@ async def build_snapshot(
     log.info(f"planning search queries for {ticker} via {search_provider.name}")
     queries = await _plan_queries(client, ticker, as_of)
     log.info(f"running {len(queries)} queries: {queries}")
+    if on_queries is not None:
+        try:
+            on_queries(queries)
+        except Exception:
+            pass
 
     results = await run_queries(search_provider, queries, num_results_per_query=5)
     total_hits = sum(len(v) for v in results.values())
     log.info(f"collected {total_hits} results across {len(queries)} queries")
+    if on_search_results is not None:
+        try:
+            on_search_results(total_hits, len(queries))
+        except Exception:
+            pass
 
     if total_hits == 0:
         log.warning("search returned zero results; falling back to LLM-only")

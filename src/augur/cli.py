@@ -210,6 +210,32 @@ async def _pipeline(
         f"[bold]Phase 1 · {random.choice(SNAPSHOT_QUIPS)}[/bold]", style="cyan",
     ))
 
+    def _show_queries(queries: list[str]) -> None:
+        if not queries:
+            return
+        header = Text.assemble(
+            ("  ", ""),
+            ("📜 ", ""),
+            (f"Planned {len(queries)} ", "dim"),
+            (f"{provider.name if provider else 'search'} ", "bold cyan"),
+            ("queries:", "dim"),
+        )
+        console.print(header)
+        for i, q in enumerate(queries, 1):
+            console.print(Text.assemble(
+                (f"     {i}. ", "dim cyan"),
+                (q, "italic"),
+            ))
+
+    def _show_search_results(total_hits: int, n_queries: int) -> None:
+        avg = total_hits / n_queries if n_queries else 0
+        console.print(Text.assemble(
+            ("  ", ""),
+            ("🔎 ", ""),
+            (f"Got {total_hits} results ", "bold green"),
+            (f"across {n_queries} queries (avg {avg:.1f}/query)", "dim"),
+        ))
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -223,7 +249,13 @@ async def _pipeline(
             else "[cyan]Drafting snapshot from model knowledge..."
         )
         t = progress.add_task(label, total=None)
-        snapshot = await build_snapshot(client, ticker, search_provider=provider)
+        snapshot = await build_snapshot(
+            client,
+            ticker,
+            search_provider=provider,
+            on_queries=_show_queries if provider else None,
+            on_search_results=_show_search_results if provider else None,
+        )
         progress.update(t, description=f"[green]✔ Snapshot ready — {snapshot.as_of}")
         progress.stop_task(t)
 

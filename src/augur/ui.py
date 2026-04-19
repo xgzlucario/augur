@@ -155,25 +155,20 @@ def render_snapshot_summary(ticker: str, as_of: str, n_news: int) -> None:
     console.print()
 
 
-def render_council_preamble(n_personas: int, concurrency: int) -> None:
-    console.print(
-        f"[dim]{n_personas} masters take the auspices "
-        f"(up to {concurrency} at once)...[/dim]\n"
-    )
-
-
 @contextmanager
-def council_progress():
-    """Live spinner + elapsed-time clock for Phase 2.
+def council_progress(n_personas: int, concurrency: int):
+    """Live spinner + clock rendered on the 'N masters take the auspices' line.
 
     Yields a `step(persona, vote)` callback. Each call prints the vote line
-    above the live display — votes scroll normally, the spinner stays pinned
-    at the bottom, the clock keeps ticking.
+    above the live display — votes scroll normally, the preamble stays pinned
+    at the bottom with an animating spinner and a running clock.
     """
     progress = Progress(
         SpinnerColumn(),
-        TextColumn("[cyan]Council deliberating..."),
-        TextColumn("•"),
+        TextColumn(
+            f"[dim]{n_personas} masters take the auspices "
+            f"(up to {concurrency} at once)...[/dim]"
+        ),
         TimeElapsedColumn(),
         console=console,
         transient=True,

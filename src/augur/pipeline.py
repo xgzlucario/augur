@@ -55,7 +55,6 @@ async def run_pipeline(
 
     # Phase 2: council — stream each vote as it lands
     ui.render_phase_rule("Phase 2", ui.DELIBERATION_QUIPS)
-    ui.render_council_preamble(len(personas), concurrency)
 
     system_message = build_system_message(snapshot, lang=lang)
     sem = asyncio.Semaphore(concurrency)
@@ -64,7 +63,7 @@ async def run_pipeline(
     failed_ids: list[str] = []
     t_phase2 = time.time()
 
-    with ui.council_progress() as step:
+    with ui.council_progress(len(personas), concurrency) as step:
 
         async def _one(p: Persona) -> None:
             async with sem:

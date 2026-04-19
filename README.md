@@ -34,70 +34,39 @@ is for thinking, not for trading.
 
 ## Pipeline
 
-```
-┌────────────────────────────────────────────────────────────────────────────┐
-│  $ augur run AAPL --limit N                                                │
-└──────────────────────────────┬─────────────────────────────────────────────┘
-                               │
-                 ┌─────────────▼────────────────┐
-                 │  Phase 1  Market Snapshot    │
-                 │  ─────────────────────────   │
-                 │                              │
-                 │  ① LLM plans 4-6             │
-                 │    search queries            │
-                 │  ② Exa or Tavily runs        │
-                 │    them in parallel          │
-                 │  ③ LLM synthesizes           │
-                 │    Snapshot from results     │
-                 │                              │
-                 │  Output: shared Snapshot     │
-                 └─────────────┬────────────────┘
-                               │
-                 ┌─────────────▼────────────────┐
-                 │  Phase 2  The Auspices       │
-                 │  ─────────────────────────   │
-                 │                              │
-                 │  asyncio.gather over         │
-                 │  Semaphore(concurrency):     │
-                 │                              │
-                 │  ┌──────┐ ┌──────┐ ┌──────┐  │
-                 │  │Buffett│ │ Soros│ │ ...  │  │
-                 │  └───┬──┘ └──┬───┘ └──┬───┘  │
-                 │      │       │        │      │
-                 │   research research research │
-                 │    model × N calls           │
-                 │      │       │        │      │
-                 │      ▼       ▼        ▼      │
-                 │   PersonaVote (JSON)         │
-                 │   • action: buy/hold/sell    │
-                 │   • confidence 0-100         │
-                 │   • key_reasons / concerns   │
-                 │   • reasoning (2-3 ¶)        │
-                 │                              │
-                 │  Shared system prompt =      │
-                 │  framework + snapshot        │
-                 │  (identical bytes → prefix   │
-                 │   cache hits where supported)│
-                 └─────────────┬────────────────┘
-                               │
-                 ┌─────────────▼────────────────┐
-                 │  Phase 3  The Augury         │
-                 │  ─────────────────────────   │
-                 │                              │
-                 │  • Deterministic stats       │
-                 │    (counts by action/school, │
-                 │     top reasons/concerns)    │
-                 │                              │
-                 │  • Synthesis model reads all │
-                 │    votes and writes the      │
-                 │    narrative: consensus,     │
-                 │    fractures, contrarians,   │
-                 │    mind-changers             │
-                 └─────────────┬────────────────┘
-                               │
-                               ▼
-                  reports/AAPL_YYYY-MM-DD.md
-```
+Every ticker runs through three phases.
+
+**Phase 1 · The Auspices.** The synthesis model plays research analyst: it
+writes 4–6 diverse search queries spanning fundamentals, earnings, analyst
+sentiment, competitive landscape, and macro backdrop — and prints them live so
+you see what it chose to look for. The configured provider (Exa or Tavily)
+fires every query in parallel; a typical call returns around 30 snippets. The
+same model then compresses those hits into a single structured `Snapshot`
+(fundamentals, recent news, price action, sector and macro context). This
+snapshot is the shared world-state every master will read next.
+
+**Phase 2 · The Council Speaks.** Augur fans out one API call per master over
+an `asyncio.Semaphore` (default ten in flight). Every call sends the *exact
+same* system prompt — framework instructions followed by the snapshot JSON,
+byte-for-byte identical — which is the prerequisite for any prefix-cache hits
+your LLM provider offers. The user message is built from the master's YAML
+(philosophy, key metrics, what they avoid, voice). The research model plays
+the master in-character and returns a `PersonaVote`: buy/hold/sell, confidence
+0-100, time horizon, position size, up to five key reasons, up to three
+concerns, and a 2–3 paragraph reasoning in-voice. Each vote is streamed to
+the terminal the moment it lands. Masters that fail to return parseable JSON
+are skipped, not fatal.
+
+**Phase 3 · The Augury.** Augur computes the deterministic stats locally —
+votes by action, by school, top reasons, top concerns — then asks the
+synthesis model to read all N votes and write a balanced editor's note:
+where the council agrees, where it fractures, which contrarians are worth
+hearing, what would change minds. The final artifact is a Markdown report
+dropped into `./reports/<TICKER>_<YYYY-MM-DD>.md`.
+
+Typical end-to-end run: **about 1–2 minutes**, ~30 search hits, three
+synthesis-model calls (plan, snapshot, narrative) plus N research-model calls
+(one per master).
 
 ---
 
@@ -144,7 +113,7 @@ OPENAI_BASE_URL=                  # blank for OpenAI; full URL for others
 OPENAI_MODEL_RESEARCH=gpt-4o-mini # runs N× (once per master) — pick cheap + fast
 OPENAI_MODEL_SYNTHESIS=gpt-4o     # runs 2× (snapshot + aggregator) — pick quality
 
-# Optional: web search (pick one; grounds snapshot in live data)
+# Required: web search provider (Augur refuses to run without one of these)
 EXA_API_KEY=                      # https://exa.ai
 TAVILY_API_KEY=                   # https://tavily.com
 # SEARCH_PROVIDER=exa             # override when both keys are set
@@ -244,12 +213,11 @@ src/augur/
   schemas.py       Pydantic: Snapshot, Decision, PersonaVote, RunStats
   personas.py      YAML loading + persona prompt rendering
   search.py        SearchProvider Protocol + Exa/Tavily impls + factory
-  snapshot.py      Phase 1 (plan → search → synthesize, or LLM-only fallback)
+  snapshot.py      Phase 1 — plan queries → search → synthesize Snapshot
   analyst.py       Single master call (research model + JSON via prompt)
-  orchestrator.py  Phase 2 fan-out with asyncio.gather + Semaphore
   aggregator.py    Deterministic stats + synthesis-model narrative
   report.py        Markdown rendering
-  cli.py           Typer entry point (single async pipeline)
+  cli.py           Typer entry point + fan-out pipeline (the single asyncio.run)
   json_utils.py    Lenient JSON extraction (fences, prose, brace slice)
 personas/          Master YAMLs grouped by school
 reports/           Generated auguries (gitignored)

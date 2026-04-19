@@ -17,6 +17,10 @@ class QueryPlanningError(RuntimeError):
     """Raised when the LLM fails to produce a valid search-query plan."""
 
 
+class SearchFailedError(RuntimeError):
+    """Raised when the search provider returns no usable results."""
+
+
 # ---------- Prompt 1: query planner ----------
 
 PLANNER_SYSTEM = """You are a research analyst planning a web search for a ticker.
@@ -112,33 +116,6 @@ OUTPUT RULES (critical):
   }
 """
 
-# ---------- Prompt 2 (fallback): LLM-only snapshot, no search ----------
-
-SNAPSHOT_LLM_ONLY_SYSTEM = """You are a senior equity research analyst.
-
-Produce a concise, factual snapshot of a ticker from your training knowledge.
-The snapshot must be balanced and multi-faceted — cover bull and bear angles,
-value and growth data, macro and company-specific.
-
-You do NOT have internet access. If you are unsure about recent events or
-numbers, say so explicitly in the relevant field rather than fabricating.
-Flag staleness where it matters.
-
-OUTPUT RULES (critical):
-- Respond with a single JSON object and NOTHING else.
-- No markdown fences, no ```json blocks, no prose before or after.
-- Must match this schema exactly:
-  {
-    "ticker": string,
-    "as_of": string (ISO date),
-    "fundamentals": string,
-    "recent_news": array of strings,
-    "price_action": string,
-    "sector_context": string,
-    "macro_context": string
-  }
-"""
-
 
 def _format_search_results(results: dict[str, list[SearchResult]]) -> str:
     lines = []
@@ -182,50 +159,31 @@ async def _synthesize_from_search(
     return snapshot
 
 
-async def _snapshot_llm_only(client: AsyncOpenAI, ticker: str, as_of: str) -> Snapshot:
-    response = await client.chat.completions.create(
-        model=get_model_synthesis(),
-        messages=[
-            {"role": "system", "content": SNAPSHOT_LLM_ONLY_SYSTEM},
-            {
-                "role": "user",
-                "content": f"Build a market snapshot for ticker {ticker}, dated {as_of}.",
-            },
-        ],
-    )
-    content = response.choices[0].message.content
-    if not content:
-        raise RuntimeError(f"snapshot returned empty content for {ticker}")
-    snapshot = Snapshot.model_validate(extract_json(content))
-    snapshot.ticker = ticker
-    snapshot.as_of = as_of
-    return snapshot
-
-
 # ---------- Public entry point ----------
 
 
 async def build_snapshot(
     client: AsyncOpenAI,
     ticker: str,
-    search_provider: SearchProvider | None = None,
+    search_provider: SearchProvider,
     on_queries: Callable[[list[str]], None] | None = None,
     on_search_results: Callable[[int, int], None] | None = None,
 ) -> Snapshot:
-    """Phase 1: produce a market snapshot.
+    """Phase 1: produce a market snapshot grounded in live web search.
 
-    If `search_provider` is given, plan queries → execute search → synthesize
-    snapshot from results. Otherwise fall back to LLM-only (training knowledge).
+    Plan queries → execute search → synthesize snapshot from results.
+    There is no LLM-only fallback: stale training knowledge is worse than
+    an explicit failure.
 
     Callbacks (optional; never break the pipeline if they raise):
       on_queries(queries) — invoked with the planned query list before search.
       on_search_results(total_hits, n_queries) — invoked after search completes.
+
+    Raises:
+      QueryPlanningError — LLM failed to produce a valid query plan.
+      SearchFailedError — search returned zero results across all queries.
     """
     as_of = date.today().isoformat()
-
-    if search_provider is None:
-        log.info("no search provider configured; using LLM-only snapshot")
-        return await _snapshot_llm_only(client, ticker, as_of)
 
     log.info(f"planning search queries for {ticker} via {search_provider.name}")
     queries = await _plan_queries(client, ticker, as_of)
@@ -246,7 +204,10 @@ async def build_snapshot(
             pass
 
     if total_hits == 0:
-        log.warning("search returned zero results; falling back to LLM-only")
-        return await _snapshot_llm_only(client, ticker, as_of)
+        raise SearchFailedError(
+            f"{search_provider.name} returned zero results across all "
+            f"{len(queries)} queries for {ticker}. "
+            f"Check the provider's status/quota or try a different ticker."
+        )
 
     return await _synthesize_from_search(client, ticker, as_of, results)

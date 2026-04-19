@@ -21,8 +21,9 @@ synthesis surfaces the consensus, the fractures, and the contrarians worth
 hearing.
 
 Works with any **OpenAI-compatible** API (OpenAI, DeepSeek, Moonshot, Together,
-Groq, vLLM, Ollama...). Optional web search (**Exa** or **Tavily**) grounds
-the snapshot in live data.
+Groq, vLLM, Ollama...). Requires a web-search key (**Exa** or **Tavily**) —
+the snapshot is grounded in live data because training knowledge is too stale
+for investment analysis.
 
 > [中文 README](./README.zh-CN.md)
 
@@ -42,21 +43,12 @@ is for thinking, not for trading.
                  │  Phase 1  Market Snapshot    │
                  │  ─────────────────────────   │
                  │                              │
-                 │  ┌─ if search key set ──┐    │
-                 │  │  ① LLM plans 4-6     │    │
-                 │  │    search queries    │    │
-                 │  │  ② provider runs     │    │
-                 │  │    in parallel       │    │
-                 │  │  ③ LLM synthesizes   │    │
-                 │  │    Snapshot from     │    │
-                 │  │    search results    │    │
-                 │  └──────────────────────┘    │
-                 │                              │
-                 │  ┌─ else ───────────────┐    │
-                 │  │  LLM generates       │    │
-                 │  │  Snapshot from       │    │
-                 │  │  training knowledge  │    │
-                 │  └──────────────────────┘    │
+                 │  ① LLM plans 4-6             │
+                 │    search queries            │
+                 │  ② Exa or Tavily runs        │
+                 │    them in parallel          │
+                 │  ③ LLM synthesizes           │
+                 │    Snapshot from results     │
                  │                              │
                  │  Output: shared Snapshot     │
                  └─────────────┬────────────────┘
@@ -175,9 +167,6 @@ augur run TSLA --limit 5
 augur run NVDA --schools value,contrarian
 augur run BTC --concurrency 5
 
-# Force training-knowledge snapshot even with a search key set
-augur run AAPL --no-search
-
 # Inspect the roster
 augur list-personas
 
@@ -189,16 +178,19 @@ Reports land in `reports/<TICKER>_<YYYY-MM-DD>.md`.
 
 ---
 
-## Web search
+## Web search (required)
 
-Set either `EXA_API_KEY` or `TAVILY_API_KEY` → automatic. The snapshot becomes
-LLM-planned-search-and-summarize:
+Augur refuses to start without a search key. The LLM's training data is too
+stale for investment analysis, and a silent fallback to it would produce
+dangerously out-of-date verdicts.
+
+The snapshot pipeline:
 
 1. Synthesis model generates 4-6 diverse queries for the ticker.
 2. Search provider executes them in parallel (`num_results=5`).
 3. Synthesis model reads the aggregated results and writes the structured Snapshot.
-4. If search returns zero hits, falls back to LLM-only. If no key is set or
-   `--no-search` is passed, skip search entirely.
+4. If planning fails, or search returns zero hits, Augur exits with a red error
+   panel — no fallback.
 
 **Supported providers:**
 

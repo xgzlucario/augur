@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import random
 import time
 from pathlib import Path
@@ -22,7 +21,7 @@ from augur.personas import Persona, filter_personas, load_all
 from augur.report import render_report, write_report
 from augur.schemas import PersonaVote, RunStats
 from augur.search import get_provider
-from augur.snapshot import QueryPlanningError, build_snapshot
+from augur.snapshot import QueryPlanningError, SearchFailedError, build_snapshot
 
 app = typer.Typer(
     help="Augur — a council of legendary investors, summoned on demand. "
@@ -82,7 +81,7 @@ def _action_style(action: str) -> tuple[str, str]:
 # ---------- Rendering helpers ----------
 
 
-def _render_banner(ticker: str, n_personas: int, concurrency: int, search: bool) -> None:
+def _render_banner(ticker: str, n_personas: int, concurrency: int, provider_name: str) -> None:
     console.print(Text(BANNER, style="bold magenta"))
     subtitle = Table.grid(padding=(0, 2))
     subtitle.add_column(style="dim")
@@ -90,7 +89,7 @@ def _render_banner(ticker: str, n_personas: int, concurrency: int, search: bool)
     subtitle.add_row("Ticker", f"[cyan]{ticker}[/cyan]")
     subtitle.add_row("Council size", f"{n_personas} personas")
     subtitle.add_row("Concurrency", f"{concurrency}")
-    subtitle.add_row("Web search", "[green]enabled[/green]" if search else "[dim]disabled[/dim]")
+    subtitle.add_row("Web search", f"[green]via {provider_name}[/green]")
     console.print(subtitle)
     console.print()
     console.print(Panel(
@@ -199,13 +198,12 @@ async def _pipeline(
     ticker: str,
     personas: list[Persona],
     concurrency: int,
-    search_on: bool,
+    provider: "object",
 ) -> tuple[list[PersonaVote], RunStats, str, "object"]:
     client = get_client()
     t_start = time.time()
 
     # Phase 1: snapshot
-    provider = get_provider() if search_on else None
     console.print(Rule(
         f"[bold]Phase 1 · {random.choice(SNAPSHOT_QUIPS)}[/bold]", style="cyan",
     ))
@@ -217,7 +215,7 @@ async def _pipeline(
             ("  ", ""),
             ("📜 ", ""),
             (f"Planned {len(queries)} ", "dim"),
-            (f"{provider.name if provider else 'search'} ", "bold cyan"),
+            (f"{provider.name} ", "bold cyan"),
             ("queries:", "dim"),
         )
         console.print(header)
@@ -243,18 +241,16 @@ async def _pipeline(
         console=console,
         transient=True,
     ) as progress:
-        label = (
-            f"[cyan]Planning queries and searching via {provider.name}..."
-            if provider
-            else "[cyan]Drafting snapshot from model knowledge..."
+        t = progress.add_task(
+            f"[cyan]Planning queries and searching via {provider.name}...",
+            total=None,
         )
-        t = progress.add_task(label, total=None)
         snapshot = await build_snapshot(
             client,
             ticker,
             search_provider=provider,
-            on_queries=_show_queries if provider else None,
-            on_search_results=_show_search_results if provider else None,
+            on_queries=_show_queries,
+            on_search_results=_show_search_results,
         )
         progress.update(t, description=f"[green]✔ Snapshot ready — {snapshot.as_of}")
         progress.stop_task(t)
@@ -369,10 +365,6 @@ def run(
     ] = None,
     out: Annotated[Path | None, typer.Option(help="Output directory for reports")] = None,
     concurrency: Annotated[int, typer.Option(help="Max concurrent persona calls")] = 10,
-    no_search: Annotated[
-        bool,
-        typer.Option("--no-search", help="Disable web search even if EXA_API_KEY is set"),
-    ] = False,
     verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Debug logging")] = False,
 ) -> None:
     """Convene the council, read the omens, write the augury."""
@@ -384,8 +376,22 @@ def run(
     ticker = ticker.upper()
     personas_dir = personas_dir or _default_personas_dir()
     out = out or (Path.cwd() / "reports")
-    load_dotenv()  # ensure EXA_API_KEY visible before we check it
-    search_on = (not no_search) and bool(os.environ.get("EXA_API_KEY"))
+    load_dotenv()
+
+    provider = get_provider()
+    if provider is None:
+        console.print(Panel(
+            "[red]No web search provider configured.[/red]\n\n"
+            "Augur requires live web search — the LLM's training data is too "
+            "stale for investment analysis.\n\n"
+            "[yellow]Set one of these in your .env:[/yellow]\n"
+            "  [cyan]EXA_API_KEY[/cyan]    — https://exa.ai\n"
+            "  [cyan]TAVILY_API_KEY[/cyan] — https://tavily.com",
+            title="[bold red]Web search required[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        ))
+        raise typer.Exit(1)
 
     all_personas = load_all(personas_dir)
     school_list = [s.strip() for s in schools.split(",")] if schools else None
@@ -394,21 +400,32 @@ def run(
         console.print("[red]No personas matched the filter.[/red]")
         raise typer.Exit(1)
 
-    _render_banner(ticker, len(selected), concurrency, search_on)
+    _render_banner(ticker, len(selected), concurrency, provider.name)
 
     try:
         votes, run_stats, narrative, snapshot = asyncio.run(
-            _pipeline(ticker, selected, concurrency, search_on)
+            _pipeline(ticker, selected, concurrency, provider)
         )
     except QueryPlanningError as e:
         console.print()
         console.print(Panel(
             f"[red]The LLM failed to plan search queries.[/red]\n\n"
             f"[dim]{e}[/dim]\n\n"
-            f"[yellow]Tip:[/yellow] try a different synthesis model, raise "
-            f"the planner's max_tokens, or run with [cyan]--no-search[/cyan] "
-            f"to fall back to LLM-only snapshot.",
+            f"[yellow]Tip:[/yellow] try a different synthesis model or raise "
+            f"the planner's max_tokens.",
             title="[bold red]Query planning failed[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        ))
+        raise typer.Exit(1) from e
+    except SearchFailedError as e:
+        console.print()
+        console.print(Panel(
+            f"[red]{e}[/red]\n\n"
+            f"[yellow]Tip:[/yellow] check your search provider's status / quota, "
+            f"or try [cyan]SEARCH_PROVIDER[/cyan]={provider.name == 'exa' and 'tavily' or 'exa'} "
+            f"with the alternate provider's key set.",
+            title="[bold red]Search returned no results[/bold red]",
             border_style="red",
             padding=(1, 2),
         ))

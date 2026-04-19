@@ -20,7 +20,8 @@
 揭示分歧、凸显异见。
 
 兼容任意 **OpenAI 兼容** 接口（OpenAI、DeepSeek、Moonshot、Together、Groq、
-vLLM、Ollama……）。可选配网页搜索（**Exa** 或 **Tavily**）为快照接入实时数据。
+vLLM、Ollama……）。**必须配置网页搜索**（**Exa** 或 **Tavily**）——训练数据对
+投资分析来说太过时了，所以 Augur 拒绝在没有搜索的情况下运行。
 
 > [English README](./README.md)
 
@@ -49,19 +50,11 @@ vLLM、Ollama……）。可选配网页搜索（**Exa** 或 **Tavily**）为快
                  │  Phase 1  市场快照            │
                  │  ─────────────────────────   │
                  │                              │
-                 │  ┌─ 若配置搜索 key ────┐    │
-                 │  │  ① LLM 规划           │    │
-                 │  │    4-6 个搜索 query   │    │
-                 │  │  ② provider 并行执行  │    │
-                 │  │  ③ LLM 基于搜索       │    │
-                 │  │    结果合成 Snapshot  │    │
-                 │  └──────────────────────┘    │
-                 │                              │
-                 │  ┌─ 否则 ────────────────┐    │
-                 │  │  LLM 从训练知识      │    │
-                 │  │  直接生成 Snapshot    │    │
-                 │  │  （可能过期）         │    │
-                 │  └──────────────────────┘    │
+                 │  ① LLM 规划                   │
+                 │    4-6 个搜索 query           │
+                 │  ② Exa 或 Tavily 并行执行     │
+                 │  ③ LLM 基于搜索结果           │
+                 │    合成 Snapshot             │
                  │                              │
                  │  输出：共享 Snapshot         │
                  └─────────────┬────────────────┘
@@ -176,9 +169,6 @@ augur run TSLA --limit 5                  # 前 5 位
 augur run NVDA --schools value,contrarian # 仅指定学派
 augur run BTC --concurrency 5             # 控制并发
 
-# 即使配置了搜索 key 也强制用训练知识路径
-augur run AAPL --no-search
-
 # 列出已加载的所有大师
 augur list-personas
 
@@ -190,16 +180,17 @@ augur run AAPL -v
 
 ---
 
-## 网页搜索
+## 网页搜索（必需）
 
-配置 `EXA_API_KEY` 或 `TAVILY_API_KEY` 后自动启用。快照变成"LLM 规划 → 搜索 →
-合成"三步：
+Augur 没有搜索 key 会拒绝启动。LLM 训练数据对投资分析来说太过时了，静默回退到
+训练知识会产生非常危险的过期结论，所以这里不提供回退。
+
+快照流水线：
 
 1. 合成模型根据 ticker 生成 4-6 个多样化查询
 2. 搜索 provider 并行执行（每个 query 取 5 条）
 3. 合成模型读取聚合结果，写出结构化 Snapshot
-4. 若搜索返回 0 命中，自动降级到 LLM-only；未配置 key 或指定 `--no-search` 则直
-   接跳过搜索环节
+4. 规划失败或搜索返回 0 命中 → 红色错误 panel 退出，无 fallback
 
 **已支持的 provider：**
 

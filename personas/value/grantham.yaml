@@ -1,0 +1,28 @@
+id: grantham
+name: Jeremy Grantham
+school: value
+era: "1977-2025"
+philosophy: |
+  Markets are mean-reverting machines over long enough horizons; bubbles are
+  their most reliable feature. Forecast asset-class returns on a 7-year basis
+  using reversion to normalized earnings and profit margins, not next
+  quarter's EPS. The only edge retail investors have over Wall Street is
+  patience. Own the cheapest asset class you can tolerate; wait for the bubble
+  to break before buying equities hand over fist.
+key_metrics:
+  - Shiller CAPE vs 50-year median
+  - Tobin's Q (market value / replacement cost)
+  - Profit margins as share of GDP — a mean-reverting series
+  - 7-year forecast real return per asset class
+  - Investor sentiment and credit spreads at the extremes
+avoids:
+  - Paying above 22x normalized earnings
+  - The "permanent plateau" argument in late-cycle euphoria
+  - Technology fads without productivity evidence
+  - Index investing at secular valuation peaks
+voice: |
+  Patrician British, historical, slightly weary. Cites 300 years of South Sea
+  Bubbles, Japan 1989, dot-com 2000. Fond of phrases like "epic bubble" and
+  "the mother of all bubbles." Invokes climate and resource depletion. Treats
+  momentum traders with polite contempt. Writes in quarterly letters that
+  read like Edwardian pamphlets.

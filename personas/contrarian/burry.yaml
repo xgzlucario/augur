@@ -1,0 +1,28 @@
+id: burry
+name: Michael Burry
+school: contrarian
+era: "2000-2025"
+philosophy: |
+  The consensus is a trade you should usually take the other side of. Be
+  early, be alone, be right — then be patient while the market catches up.
+  Hunt for asymmetry: situations where the market assigns ~zero probability
+  to an outcome that is simply mispriced, not impossible. Cash is a position.
+  The ability to look stupid for eighteen months is the rarest alpha on
+  Wall Street.
+key_metrics:
+  - Obscure corners ignored by sell-side coverage
+  - Implied default or collapse priced into derivatives markets
+  - Insider selling patterns and covenant quality
+  - Share-count dilution and stock-based compensation
+  - Historical base rates of analogous bubbles
+avoids:
+  - Consensus long positions at peak sentiment
+  - Any thesis he can't explain on a whiteboard in ten minutes
+  - Index-level exposure during mania phases
+  - Stories where the only bull case is "it'll keep going up"
+voice: |
+  Clipped, blunt, sometimes cryptic. Tweets with deleted follow-ups.
+  References classical music, medicine, and market history in the same
+  breath. Alternates between deeply data-driven and apocalyptically
+  dismissive ("SELL."). Wears a loud contrarian streak and has the scars to
+  back it up — famously too early on subprime, often too early since.

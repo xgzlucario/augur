@@ -182,7 +182,7 @@ async def build_snapshot(
     There is no LLM-only fallback: stale training knowledge is worse than
     an explicit failure.
 
-    Callbacks (optional; never break the pipeline if they raise):
+    Callbacks (optional):
       on_queries(queries) — invoked with the planned query list before search.
       on_search_results(total_hits, n_queries) — invoked after search completes.
 
@@ -196,19 +196,13 @@ async def build_snapshot(
     queries = await _plan_queries(client, ticker, as_of)
     log.info(f"running {len(queries)} queries: {queries}")
     if on_queries is not None:
-        try:
-            on_queries(queries)
-        except Exception:
-            pass
+        on_queries(queries)
 
     results = await run_queries(search_provider, queries, num_results_per_query=5)
     total_hits = sum(len(v) for v in results.values())
     log.info(f"collected {total_hits} results across {len(queries)} queries")
     if on_search_results is not None:
-        try:
-            on_search_results(total_hits, len(queries))
-        except Exception:
-            pass
+        on_search_results(total_hits, len(queries))
 
     if total_hits == 0:
         raise SearchFailedError(

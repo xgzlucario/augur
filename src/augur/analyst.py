@@ -25,7 +25,6 @@ Your job: produce a single PersonaVote as the assigned persona, based on the sna
 
 OUTPUT RULES (critical):
 - Respond with a single JSON object and NOTHING else.
-- No markdown fences, no ```json blocks, no prose before or after.
 - Must match this schema exactly:
   {
     "persona_id": string,

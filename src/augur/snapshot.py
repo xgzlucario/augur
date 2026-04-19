@@ -32,7 +32,6 @@ verbatim against a web search engine, so phrase them as someone would type them.
 
 OUTPUT RULES (critical):
 - Respond with a single JSON object and NOTHING else.
-- No markdown fences, no ```json blocks, no prose before or after.
 - The object must have exactly one key "queries" whose value is a string array.
 
 Example of the ONLY acceptable output format:
@@ -104,7 +103,6 @@ output — those live in the raw results.
 
 OUTPUT RULES (critical):
 - Respond with a single JSON object and NOTHING else.
-- No markdown fences, no ```json blocks, no prose before or after.
 - Must match this schema exactly:
   {
     "ticker": string,

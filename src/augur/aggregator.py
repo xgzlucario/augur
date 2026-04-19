@@ -70,7 +70,6 @@ and structured — the deterministic vote statistics are rendered separately.
 
 OUTPUT RULES (critical):
 - Respond with a single JSON object and NOTHING else.
-- No markdown fences, no ```json blocks, no prose wrapper.
 - Shape: {"verdict": "<one sentence>", "narrative": "<markdown body>"}.
 - `verdict` is a single plain-text sentence (<= 180 chars), no markdown, no
   trailing newline. It should capture the council's bottom line AND the main

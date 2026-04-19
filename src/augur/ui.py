@@ -137,11 +137,10 @@ def render_planned_queries(provider_name: str, queries: list[str]) -> None:
 
 
 def render_search_summary(total_hits: int, n_queries: int) -> None:
-    avg = total_hits / n_queries if n_queries else 0
     console.print(Text.assemble(
         ("  ", ""),
         (f"Got {total_hits} results ", "bold green"),
-        (f"across {n_queries} queries (avg {avg:.1f}/query)", "dim"),
+        (f"across {n_queries} queries", "dim"),
     ))
 
 
@@ -154,7 +153,7 @@ def render_snapshot_summary(ticker: str, as_of: str, n_news: int) -> None:
 
 
 @contextmanager
-def council_progress(n_personas: int, concurrency: int):
+def council_progress(n_personas: int):
     """Live spinner + clock rendered on the 'N masters take the auspices' line.
 
     Yields a `step(persona, vote)` callback. Each call prints the vote line
@@ -163,10 +162,7 @@ def council_progress(n_personas: int, concurrency: int):
     """
     progress = Progress(
         SpinnerColumn(),
-        TextColumn(
-            f"[dim]{n_personas} masters take the auspices "
-            f"(up to {concurrency} at once)...[/dim]"
-        ),
+        TextColumn(f"[dim]{n_personas} masters take the auspices...[/dim]"),
         TimeElapsedColumn(),
         console=console,
         transient=True,

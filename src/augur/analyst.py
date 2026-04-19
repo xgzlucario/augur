@@ -57,52 +57,71 @@ def build_system_message(snapshot: Snapshot) -> str:
     )
 
 
+MAX_ATTEMPTS = 3
+
+
 async def run_persona(
     client: AsyncOpenAI,
     persona: Persona,
     ticker: str,
     system_message: str,
 ) -> tuple[PersonaVote | None, dict]:
-    """Run one persona's analysis. Returns (vote, usage_dict). Vote is None on failure.
+    """Run one persona's analysis with up to MAX_ATTEMPTS retries.
+
+    Returns (vote, usage_dict). Vote is None only after all attempts fail.
+    Token usage is summed across attempts so cost accounting stays accurate.
 
     `system_message` is built once per run (containing the framework + snapshot
     JSON) and reused verbatim across N persona calls — identical prefix bytes
     are the prerequisite for any prefix caching the provider offers.
     """
-    try:
-        response = await client.chat.completions.create(
-            model=get_model_research(),
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": render_persona_prompt(persona, ticker)},
-            ],
-            max_tokens=6000,
-        )
-    except Exception as e:
-        log.warning(f"persona {persona.id} failed: {type(e).__name__}: {e}")
-        return None, {}
+    total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": render_persona_prompt(persona, ticker)},
+    ]
 
-    usage = {}
-    if response.usage is not None:
-        usage = {
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-        }
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = await client.chat.completions.create(
+                model=get_model_research(),
+                messages=messages,
+                max_tokens=6000,
+            )
+        except Exception as e:
+            log.warning(
+                f"persona {persona.id} attempt {attempt}/{MAX_ATTEMPTS} "
+                f"API call failed: {type(e).__name__}: {e}"
+            )
+            continue
 
-    content = response.choices[0].message.content
-    if not content:
-        log.warning(f"persona {persona.id} returned empty content")
-        return None, usage
+        if response.usage is not None:
+            total_usage["prompt_tokens"] += response.usage.prompt_tokens
+            total_usage["completion_tokens"] += response.usage.completion_tokens
 
-    try:
-        data = extract_json(content)
-        vote = PersonaVote.model_validate(data)
-    except (json.JSONDecodeError, ValueError) as e:
-        log.warning(f"persona {persona.id} returned unparsable output: {e}")
-        return None, usage
+        content = response.choices[0].message.content
+        if not content:
+            log.warning(
+                f"persona {persona.id} attempt {attempt}/{MAX_ATTEMPTS} "
+                f"returned empty content"
+            )
+            continue
 
-    # Force persona fields to match the YAML (defensive — model sometimes drifts)
-    vote.persona_id = persona.id
-    vote.persona_name = persona.name
-    vote.school = persona.school
-    return vote, usage
+        try:
+            data = extract_json(content)
+            vote = PersonaVote.model_validate(data)
+        except (json.JSONDecodeError, ValueError) as e:
+            log.warning(
+                f"persona {persona.id} attempt {attempt}/{MAX_ATTEMPTS} "
+                f"returned unparsable output: {e}"
+            )
+            continue
+
+        # Force persona fields to match the YAML (defensive — model sometimes drifts)
+        vote.persona_id = persona.id
+        vote.persona_name = persona.name
+        vote.school = persona.school
+        return vote, total_usage
+
+    log.warning(f"persona {persona.id} gave up after {MAX_ATTEMPTS} attempts")
+    return None, total_usage

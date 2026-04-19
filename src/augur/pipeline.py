@@ -64,7 +64,7 @@ async def run_pipeline(
     failed_ids: list[str] = []
     t_phase2 = time.time()
 
-    with ui.council_progress(total=len(personas)) as step:
+    with ui.council_progress() as step:
 
         async def _one(p: Persona) -> None:
             async with sem:

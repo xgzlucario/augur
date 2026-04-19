@@ -13,8 +13,6 @@ from pathlib import Path
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
     Progress,
     SpinnerColumn,
     TextColumn,
@@ -165,28 +163,25 @@ def render_council_preamble(n_personas: int, concurrency: int) -> None:
 
 
 @contextmanager
-def council_progress(total: int):
-    """Live progress bar + spinner for Phase 2.
+def council_progress():
+    """Live spinner + elapsed-time clock for Phase 2.
 
-    Yields a `step(persona, vote)` callback. Each call advances the bar and
-    prints the vote line above the live display — so finished votes scroll
-    normally, the bar stays pinned at the bottom, and the clock keeps ticking.
+    Yields a `step(persona, vote)` callback. Each call prints the vote line
+    above the live display — votes scroll normally, the spinner stays pinned
+    at the bottom, the clock keeps ticking.
     """
     progress = Progress(
         SpinnerColumn(),
-        TextColumn("[cyan]Council deliberating"),
-        BarColumn(bar_width=None),
-        MofNCompleteColumn(),
+        TextColumn("[cyan]Council deliberating..."),
         TextColumn("•"),
         TimeElapsedColumn(),
         console=console,
         transient=True,
     )
-    task_id = progress.add_task("", total=total)
+    progress.add_task("", total=None)
     with progress:
         def step(persona, vote) -> None:
             progress.console.print(_vote_line(persona, vote))
-            progress.advance(task_id)
         yield step
 
 

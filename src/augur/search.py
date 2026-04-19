@@ -53,14 +53,14 @@ class ExaSearch:
         self._api_key = api_key
         self._timeout = timeout
 
-    async def search(self, query: str, num_results: int = 5) -> list[SearchResult]:
+    async def search(self, query: str, num_results: int = 10) -> list[SearchResult]:
         payload = {
             "query": query,
             "numResults": num_results,
             "type": "auto",
             "contents": {
                 # Exa returns text excerpts with the hit so we don't need a separate fetch
-                "text": {"maxCharacters": 1000},
+                "text": {"maxCharacters": 4000},
                 "highlights": {"numSentences": 3, "highlightsPerUrl": 1},
             },
         }
@@ -85,7 +85,7 @@ class ExaSearch:
         for item in data.get("results", []):
             # Prefer highlights over raw text — they're pre-trimmed to relevance
             highlights = item.get("highlights") or []
-            snippet = " ... ".join(highlights) if highlights else (item.get("text") or "")[:500]
+            snippet = " ... ".join(highlights) if highlights else (item.get("text") or "")[:4000]
             out.append(
                 SearchResult(
                     title=item.get("title") or "(untitled)",
@@ -107,7 +107,7 @@ class TavilySearch:
         self._timeout = timeout
         self._search_depth = "advanced" if advanced else "basic"
 
-    async def search(self, query: str, num_results: int = 5) -> list[SearchResult]:
+    async def search(self, query: str, num_results: int = 10) -> list[SearchResult]:
         payload = {
             "api_key": self._api_key,
             "query": query,
@@ -132,7 +132,7 @@ class TavilySearch:
         out: list[SearchResult] = []
         for item in data.get("results", []):
             # Tavily returns pre-trimmed content; clamp defensively
-            snippet = (item.get("content") or "").strip()[:1500]
+            snippet = (item.get("content") or "").strip()[:4000]
             out.append(
                 SearchResult(
                     title=item.get("title") or "(untitled)",
@@ -184,7 +184,7 @@ def get_provider() -> SearchProvider | None:
 async def run_queries(
     provider: SearchProvider,
     queries: list[str],
-    num_results_per_query: int = 5,
+    num_results_per_query: int = 10,
     concurrency: int = 5,
 ) -> dict[str, list[SearchResult]]:
     """Run multiple queries in parallel. Returns {query: results}."""

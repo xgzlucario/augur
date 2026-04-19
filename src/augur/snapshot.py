@@ -198,7 +198,7 @@ async def build_snapshot(
     if on_queries is not None:
         on_queries(queries)
 
-    results = await run_queries(search_provider, queries, num_results_per_query=5)
+    results = await run_queries(search_provider, queries, num_results_per_query=10)
     total_hits = sum(len(v) for v in results.values())
     log.info(f"collected {total_hits} results across {len(queries)} queries")
     if on_search_results is not None:

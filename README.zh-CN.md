@@ -92,11 +92,16 @@ augur run AAPL                              # 完整 council
 augur run TSLA --limit 5                    # 限定数量
 augur run NVDA --schools value,contrarian   # 限定学派
 augur run BTC --concurrency 5               # 降低并发
+augur run AAPL --lang zh                    # 用中文生成叙事和理由
 augur list-personas                          # 查看名单
 augur run AAPL -v                            # 详细日志
 ```
 
 报告文件：`reports/<TICKER>_<YYYY-MM-DD>.md`。
+
+`--lang` 支持 `en`（默认）、`zh`、`ja`、`ko`、`es`、`fr`、`de`、`pt`、`ru`，以
+及任何模型能识别的语言名。自由文本字段（叙事、推理、key_reasons、concerns）按
+指定语言输出；JSON 键、枚举值（buy/hold/sell…）和 ticker 保持英文。
 
 ---
 

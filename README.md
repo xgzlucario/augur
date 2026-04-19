@@ -98,11 +98,17 @@ augur run AAPL                              # full council
 augur run TSLA --limit 5                    # subset
 augur run NVDA --schools value,contrarian   # one or more schools
 augur run BTC --concurrency 5               # dial back parallelism
+augur run AAPL --lang zh                    # narrative/reasoning in Chinese
 augur list-personas                          # inspect the roster
 augur run AAPL -v                            # verbose logging
 ```
 
 Reports: `reports/<TICKER>_<YYYY-MM-DD>.md`.
+
+`--lang` accepts `en` (default), `zh`, `ja`, `ko`, `es`, `fr`, `de`, `pt`, `ru`,
+or any language name the model understands. Free-text fields (narrative,
+reasoning, key_reasons, concerns) follow the chosen language; JSON keys, enum
+values (buy/hold/sell…), and ticker symbols stay in English.
 
 ---
 

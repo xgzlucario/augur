@@ -87,6 +87,7 @@ async def run_persona(
                 model=get_model_research(),
                 messages=messages,
                 max_tokens=6000,
+                temperature=0.1,
             )
         except Exception as e:
             log.warning(

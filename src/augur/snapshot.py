@@ -54,6 +54,7 @@ async def _plan_queries(client: AsyncOpenAI, ticker: str, as_of: str) -> list[st
             },
         ],
         max_tokens=2000,
+        temperature=0.1,
     )
 
     content = response.choices[0].message.content or ""
@@ -149,6 +150,7 @@ async def _synthesize_from_search(
                 ),
             },
         ],
+        temperature=0.1,
     )
     content = response.choices[0].message.content
     if not content:

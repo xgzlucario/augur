@@ -129,6 +129,7 @@ async def synthesize_narrative(
             },
         ],
         max_tokens=6000,
+        temperature=0.1,
     )
 
     content = (response.choices[0].message.content or "").strip()

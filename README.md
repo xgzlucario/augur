@@ -36,7 +36,7 @@ Augur brings those disagreements front and center. Buffett would look at the exa
 
 ### I · The Auspices
 
-A dedicated research model generates 4-6 targeted search queries — the exact questions a professional analyst would ask first — which are executed in parallel via Exa or Tavily. All results are condensed into a single, unbiased **market snapshot**: what the company does, how its price has moved recently, where it stands in its sector, and the current macro backdrop.
+A dedicated research model generates 4-6 targeted search queries — the exact questions a professional analyst would ask first. All results are condensed into a single, unbiased **market snapshot**: what the company does, how its price has moved recently, where it stands in its sector, and the current macro backdrop.
 
 Every claim in the snapshot is grounded in real-time web results. Stale training data is never used as the sole source of truth.
 
@@ -45,8 +45,6 @@ Every claim in the snapshot is grounded in real-time web results. Stale training
 The snapshot is presented to all 18 masters simultaneously. Each receives the *exact same briefing* and replies in their signature voice with a `PersonaVote`: **buy / hold / sell**, time horizon, recommended position size, core reasoning, key concerns, and 2-3 paragraphs of in-character analysis.
 
 All votes are fully independent. Buffett never sees Soros's opinion. Graham never sees Wood's take. The disagreements are genuine because deliberation happens entirely in private.
-
-Up to 10 masters run in parallel; on a fast LLM, the full council returns results in under a minute.
 
 ### III · The Augury
 

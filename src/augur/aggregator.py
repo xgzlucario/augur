@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from collections import Counter, defaultdict
 
 from openai import AsyncOpenAI
@@ -11,19 +10,7 @@ from augur.schemas import PersonaVote, Snapshot
 
 log = logging.getLogger(__name__)
 
-# Matches `"verdict": "..."` tolerating escaped quotes inside the value.
-_VERDICT_RE = re.compile(r'"verdict"\s*:\s*"((?:[^"\\]|\\.)*)"', re.DOTALL)
-
-
-def _salvage_verdict(text: str) -> str:
-    """Extract the verdict string even from truncated / non-JSON content."""
-    m = _VERDICT_RE.search(text)
-    if not m:
-        return ""
-    try:
-        return json.loads(f'"{m.group(1)}"')
-    except json.JSONDecodeError:
-        return m.group(1).strip()
+MAX_ATTEMPTS = 3
 
 
 def compute_stats(votes: list[PersonaVote]) -> dict:
@@ -105,47 +92,75 @@ async def synthesize_narrative(
 ) -> tuple[str, str]:
     """Ask the synthesis model for a one-sentence verdict and a narrative.
 
-    Returns (verdict, narrative). If parsing fails we fall back to the raw
-    content as the narrative with an empty verdict so the report still renders.
+    Retries up to MAX_ATTEMPTS on API errors, empty content, or unparsable JSON.
+    Returns (verdict, narrative). If every attempt fails, returns an empty
+    verdict and an error-ish narrative so the report still renders.
     """
     if not votes:
         return ("", "_No persona votes were collected. Cannot synthesize narrative._")
 
     votes_text = _format_votes_for_prompt(votes)
+    messages = [
+        {"role": "system", "content": AGGREGATOR_SYSTEM},
+        {
+            "role": "user",
+            "content": (
+                f"Ticker: {ticker}\n"
+                f"Snapshot date: {snapshot.as_of}\n\n"
+                f"=== SNAPSHOT ===\n{snapshot.model_dump_json(indent=2)}\n\n"
+                f"=== {len(votes)} COUNCIL VOTES ===\n{votes_text}\n\n"
+                "Return the JSON object described in the system prompt."
+            ),
+        },
+    ]
 
-    response = await client.chat.completions.create(
-        model=get_model_synthesis(),
-        messages=[
-            {"role": "system", "content": AGGREGATOR_SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"Ticker: {ticker}\n"
-                    f"Snapshot date: {snapshot.as_of}\n\n"
-                    f"=== SNAPSHOT ===\n{snapshot.model_dump_json(indent=2)}\n\n"
-                    f"=== {len(votes)} COUNCIL VOTES ===\n{votes_text}\n\n"
-                    "Return the JSON object described in the system prompt."
-                ),
-            },
-        ],
-        max_tokens=6000,
-        temperature=0.1,
-    )
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = await client.chat.completions.create(
+                model=get_model_synthesis(),
+                messages=messages,
+                max_tokens=6000,
+                temperature=0.1,
+            )
+        except Exception as e:
+            log.warning(
+                f"aggregator attempt {attempt}/{MAX_ATTEMPTS} API call failed: "
+                f"{type(e).__name__}: {e}"
+            )
+            continue
 
-    content = (response.choices[0].message.content or "").strip()
-    if not content:
-        return ("", "_Aggregator returned no text content._")
+        content = (response.choices[0].message.content or "").strip()
+        if not content:
+            log.warning(
+                f"aggregator attempt {attempt}/{MAX_ATTEMPTS} returned empty content"
+            )
+            continue
 
-    try:
-        data = extract_json(content)
-    except json.JSONDecodeError:
-        log.warning("aggregator: JSON parse failed, falling back to raw content")
-        return (_salvage_verdict(content), content)
+        try:
+            data = extract_json(content)
+        except json.JSONDecodeError as e:
+            log.warning(
+                f"aggregator attempt {attempt}/{MAX_ATTEMPTS} "
+                f"returned unparsable JSON: {e}"
+            )
+            continue
 
-    verdict = (data.get("verdict") or "").strip() if isinstance(data, dict) else ""
-    narrative = (data.get("narrative") or "").strip() if isinstance(data, dict) else ""
-    if not narrative:
-        narrative = content
-    if not verdict:
-        verdict = _salvage_verdict(content)
-    return (verdict, narrative)
+        if not isinstance(data, dict):
+            log.warning(
+                f"aggregator attempt {attempt}/{MAX_ATTEMPTS} "
+                f"returned non-object JSON: {type(data).__name__}"
+            )
+            continue
+
+        verdict = (data.get("verdict") or "").strip()
+        narrative = (data.get("narrative") or "").strip()
+        if not narrative:
+            log.warning(
+                f"aggregator attempt {attempt}/{MAX_ATTEMPTS} "
+                f"returned JSON with empty narrative"
+            )
+            continue
+        return (verdict, narrative)
+
+    log.warning(f"aggregator gave up after {MAX_ATTEMPTS} attempts")
+    return ("", "_Aggregator failed to produce valid JSON after retries._")

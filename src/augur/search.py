@@ -1,6 +1,13 @@
 """Web search abstraction. Provider factory selects based on env config.
 
-Currently only Exa is implemented. To add another provider (Tavily, Serper, ...):
+Supported providers:
+  - Exa     (EXA_API_KEY)
+  - Tavily  (TAVILY_API_KEY)
+
+Precedence when multiple keys are set: Exa wins by default. To force Tavily
+(or pin Exa explicitly), set `SEARCH_PROVIDER=exa|tavily`.
+
+Adding another provider (Serper, Brave, ...):
   1. Implement a class with `async def search(self, query, num_results) -> list[SearchResult]`
   2. Extend `get_provider()` to return it when the relevant env var is set.
 """
@@ -90,11 +97,87 @@ class ExaSearch:
         return out
 
 
+class TavilySearch:
+    """Tavily web search provider. https://docs.tavily.com/docs/rest-api/api-reference"""
+
+    name = "tavily"
+
+    def __init__(self, api_key: str, timeout: float = 30.0, advanced: bool = False) -> None:
+        self._api_key = api_key
+        self._timeout = timeout
+        self._search_depth = "advanced" if advanced else "basic"
+
+    async def search(self, query: str, num_results: int = 5) -> list[SearchResult]:
+        payload = {
+            "api_key": self._api_key,
+            "query": query,
+            "max_results": num_results,
+            "search_depth": self._search_depth,
+            "include_answer": False,
+            "include_raw_content": False,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.post(
+                    "https://api.tavily.com/search",
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                response.raise_for_status()
+                data = response.json()
+        except (httpx.HTTPError, ValueError) as e:
+            log.warning(f"tavily search failed for query {query!r}: {type(e).__name__}: {e}")
+            return []
+
+        out: list[SearchResult] = []
+        for item in data.get("results", []):
+            # Tavily returns pre-trimmed content; clamp defensively
+            snippet = (item.get("content") or "").strip()[:1500]
+            out.append(
+                SearchResult(
+                    title=item.get("title") or "(untitled)",
+                    url=item.get("url", ""),
+                    snippet=snippet,
+                    published_date=item.get("published_date"),
+                )
+            )
+        return out
+
+
 def get_provider() -> SearchProvider | None:
-    """Return a SearchProvider based on env vars, or None if none configured."""
+    """Return a SearchProvider based on env vars, or None if none configured.
+
+    Rules:
+      - SEARCH_PROVIDER=exa|tavily forces that provider (error logged if its key is missing).
+      - Otherwise the first key found wins, in order: EXA_API_KEY, TAVILY_API_KEY.
+      - When both keys are set and no override is given, a one-line info is logged.
+    """
     exa_key = os.environ.get("EXA_API_KEY")
+    tavily_key = os.environ.get("TAVILY_API_KEY")
+    override = os.environ.get("SEARCH_PROVIDER", "").strip().lower()
+
+    if override == "exa":
+        if exa_key:
+            return ExaSearch(api_key=exa_key)
+        log.warning("SEARCH_PROVIDER=exa but EXA_API_KEY is not set")
+        return None
+    if override == "tavily":
+        if tavily_key:
+            return TavilySearch(api_key=tavily_key)
+        log.warning("SEARCH_PROVIDER=tavily but TAVILY_API_KEY is not set")
+        return None
+    if override:
+        log.warning(f"unknown SEARCH_PROVIDER={override!r}; falling back to auto-detect")
+
     if exa_key:
+        if tavily_key:
+            log.info(
+                "both EXA_API_KEY and TAVILY_API_KEY are set; using exa "
+                "(set SEARCH_PROVIDER=tavily to override)"
+            )
         return ExaSearch(api_key=exa_key)
+    if tavily_key:
+        return TavilySearch(api_key=tavily_key)
     return None
 
 

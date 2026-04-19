@@ -20,7 +20,7 @@
 揭示分歧、凸显异见。
 
 兼容任意 **OpenAI 兼容** 接口（OpenAI、DeepSeek、Moonshot、Together、Groq、
-vLLM、Ollama……）。可选配 **Exa 网页搜索** 为快照接入实时数据。
+vLLM、Ollama……）。可选配网页搜索（**Exa** 或 **Tavily**）为快照接入实时数据。
 
 > [English README](./README.md)
 
@@ -49,10 +49,10 @@ vLLM、Ollama……）。可选配 **Exa 网页搜索** 为快照接入实时数
                  │  Phase 1  市场快照            │
                  │  ─────────────────────────   │
                  │                              │
-                 │  ┌─ 若配置 EXA_API_KEY ─┐    │
+                 │  ┌─ 若配置搜索 key ────┐    │
                  │  │  ① LLM 规划           │    │
                  │  │    4-6 个搜索 query   │    │
-                 │  │  ② Exa 并行执行       │    │
+                 │  │  ② provider 并行执行  │    │
                  │  │  ③ LLM 基于搜索       │    │
                  │  │    结果合成 Snapshot  │    │
                  │  └──────────────────────┘    │
@@ -154,8 +154,10 @@ OPENAI_BASE_URL=                  # OpenAI 官方留空；其他 provider 填完
 OPENAI_MODEL_RESEARCH=gpt-4o-mini # 每位大师调用一次 → 选便宜快的
 OPENAI_MODEL_SYNTHESIS=gpt-4o     # 每次 run 调用两次（快照+汇总）→ 选强的
 
-# 可选：Exa 网页搜索（为快照接入实时数据）
-EXA_API_KEY=                      # 在 https://exa.ai 注册获取
+# 可选：网页搜索（选一个即可；为快照接入实时数据）
+EXA_API_KEY=                      # https://exa.ai
+TAVILY_API_KEY=                   # https://tavily.com
+# SEARCH_PROVIDER=exa             # 两个 key 都设时强制选用某个
 ```
 
 也可以直接在 shell 里 `export OPENAI_API_KEY=...`。报告写到你运行 `augur` 的
@@ -174,7 +176,7 @@ augur run TSLA --limit 5                  # 前 5 位
 augur run NVDA --schools value,contrarian # 仅指定学派
 augur run BTC --concurrency 5             # 控制并发
 
-# 即使配置了 EXA_API_KEY 也强制用训练知识路径
+# 即使配置了搜索 key 也强制用训练知识路径
 augur run AAPL --no-search
 
 # 列出已加载的所有大师
@@ -190,20 +192,29 @@ augur run AAPL -v
 
 ## 网页搜索
 
-配置 `EXA_API_KEY` 后自动启用。快照变成"LLM 规划 → 搜索 → 合成"三步：
+配置 `EXA_API_KEY` 或 `TAVILY_API_KEY` 后自动启用。快照变成"LLM 规划 → 搜索 →
+合成"三步：
 
 1. 合成模型根据 ticker 生成 4-6 个多样化查询
-2. Exa 并行执行（每个 query 取 5 条，返回 text + highlights 直接可用）
+2. 搜索 provider 并行执行（每个 query 取 5 条）
 3. 合成模型读取聚合结果，写出结构化 Snapshot
 4. 若搜索返回 0 命中，自动降级到 LLM-only；未配置 key 或指定 `--no-search` 则直
    接跳过搜索环节
 
-**添加其他 provider**（Tavily、Serper、Brave……）：
+**已支持的 provider：**
+
+| Provider | 环境变量 | 注册地址 |
+|----------|---------|---------|
+| Exa | `EXA_API_KEY` | https://exa.ai |
+| Tavily | `TAVILY_API_KEY` | https://tavily.com |
+
+两个 key 都设置时默认使用 Exa；用 `SEARCH_PROVIDER=exa` 或 `SEARCH_PROVIDER=tavily`
+强制指定。
+
+**添加其他 provider**（Serper、Brave……）：
 
 1. 在 `src/augur/search.py` 加类，实现 `async def search(query, num_results) -> list[SearchResult]`
 2. 扩展 `get_provider()` 让它在相应环境变量存在时返回新类
-
-目前只实现了 Exa，但 `SearchProvider` Protocol 让新增变得廉价。
 
 ---
 
@@ -241,7 +252,7 @@ src/augur/
   client.py        AsyncOpenAI 单例 + 模型 ID getter
   schemas.py       Pydantic 模型：Snapshot、Decision、PersonaVote、RunStats
   personas.py      YAML 加载 + persona prompt 渲染
-  search.py        SearchProvider Protocol + ExaSearch 实现 + 工厂函数
+  search.py        SearchProvider Protocol + Exa/Tavily 实现 + 工厂函数
   snapshot.py      Phase 1（规划 → 搜索 → 合成，或纯 LLM 回退）
   analyst.py       单位大师调用（research 模型 + prompt 约束 JSON）
   orchestrator.py  Phase 2 fan-out，asyncio.gather + Semaphore

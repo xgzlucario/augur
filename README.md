@@ -21,8 +21,8 @@ synthesis surfaces the consensus, the fractures, and the contrarians worth
 hearing.
 
 Works with any **OpenAI-compatible** API (OpenAI, DeepSeek, Moonshot, Together,
-Groq, vLLM, Ollama...). Optional **Exa web search** grounds the snapshot in
-live data.
+Groq, vLLM, Ollama...). Optional web search (**Exa** or **Tavily**) grounds
+the snapshot in live data.
 
 > [中文 README](./README.zh-CN.md)
 
@@ -42,10 +42,10 @@ is for thinking, not for trading.
                  │  Phase 1  Market Snapshot    │
                  │  ─────────────────────────   │
                  │                              │
-                 │  ┌─ if EXA_API_KEY set ─┐    │
+                 │  ┌─ if search key set ──┐    │
                  │  │  ① LLM plans 4-6     │    │
                  │  │    search queries    │    │
-                 │  │  ② Exa runs them     │    │
+                 │  │  ② provider runs     │    │
                  │  │    in parallel       │    │
                  │  │  ③ LLM synthesizes   │    │
                  │  │    Snapshot from     │    │
@@ -152,8 +152,10 @@ OPENAI_BASE_URL=                  # blank for OpenAI; full URL for others
 OPENAI_MODEL_RESEARCH=gpt-4o-mini # runs N× (once per master) — pick cheap + fast
 OPENAI_MODEL_SYNTHESIS=gpt-4o     # runs 2× (snapshot + aggregator) — pick quality
 
-# Optional: Exa web search (grounds snapshot in live data)
-EXA_API_KEY=                      # get one at https://exa.ai
+# Optional: web search (pick one; grounds snapshot in live data)
+EXA_API_KEY=                      # https://exa.ai
+TAVILY_API_KEY=                   # https://tavily.com
+# SEARCH_PROVIDER=exa             # override when both keys are set
 ```
 
 Prefer exporting the variables directly? `export OPENAI_API_KEY=...` etc. in
@@ -173,7 +175,7 @@ augur run TSLA --limit 5
 augur run NVDA --schools value,contrarian
 augur run BTC --concurrency 5
 
-# Force training-knowledge snapshot even with EXA_API_KEY set
+# Force training-knowledge snapshot even with a search key set
 augur run AAPL --no-search
 
 # Inspect the roster
@@ -189,21 +191,29 @@ Reports land in `reports/<TICKER>_<YYYY-MM-DD>.md`.
 
 ## Web search
 
-Set `EXA_API_KEY` → automatic. The snapshot becomes LLM-planned-search-and-summarize:
+Set either `EXA_API_KEY` or `TAVILY_API_KEY` → automatic. The snapshot becomes
+LLM-planned-search-and-summarize:
 
 1. Synthesis model generates 4-6 diverse queries for the ticker.
-2. Exa executes them in parallel (`numResults=5`, returns text + highlights).
+2. Search provider executes them in parallel (`num_results=5`).
 3. Synthesis model reads the aggregated results and writes the structured Snapshot.
-4. If search returns zero hits, falls back to LLM-only. If `EXA_API_KEY` is
-   unset or `--no-search` is passed, skip search entirely.
+4. If search returns zero hits, falls back to LLM-only. If no key is set or
+   `--no-search` is passed, skip search entirely.
 
-**Adding another provider** (Tavily, Serper, Brave, ...):
+**Supported providers:**
+
+| Provider | Env var | Get a key |
+|----------|---------|-----------|
+| Exa | `EXA_API_KEY` | https://exa.ai |
+| Tavily | `TAVILY_API_KEY` | https://tavily.com |
+
+When both keys are set, Exa wins by default. Pin a specific provider with
+`SEARCH_PROVIDER=exa` or `SEARCH_PROVIDER=tavily`.
+
+**Adding another provider** (Serper, Brave, ...):
 
 1. Add a class in `src/augur/search.py` implementing `async def search(query, num_results) -> list[SearchResult]`.
 2. Extend `get_provider()` to return it when the relevant env var is set.
-
-Only Exa is implemented today, but the `SearchProvider` Protocol keeps adding
-one cheap.
 
 ---
 
@@ -241,7 +251,7 @@ src/augur/
   client.py        AsyncOpenAI singleton + model ID getters
   schemas.py       Pydantic: Snapshot, Decision, PersonaVote, RunStats
   personas.py      YAML loading + persona prompt rendering
-  search.py        SearchProvider Protocol + ExaSearch impl + factory
+  search.py        SearchProvider Protocol + Exa/Tavily impls + factory
   snapshot.py      Phase 1 (plan → search → synthesize, or LLM-only fallback)
   analyst.py       Single master call (research model + JSON via prompt)
   orchestrator.py  Phase 2 fan-out with asyncio.gather + Semaphore

@@ -205,6 +205,7 @@ async def _pipeline(
     personas: list[Persona],
     concurrency: int,
     provider: "object",
+    lang: str,
 ) -> tuple[list[PersonaVote], RunStats, str, str, "object"]:
     client = get_client()
     t_start = time.time()
@@ -257,6 +258,7 @@ async def _pipeline(
             search_provider=provider,
             on_queries=_show_queries,
             on_search_results=_show_search_results,
+            lang=lang,
         )
         progress.update(t, description=f"[green]✔ Snapshot ready — {snapshot.as_of}")
         progress.stop_task(t)
@@ -277,7 +279,7 @@ async def _pipeline(
         f"(up to {concurrency} at once)...[/dim]\n"
     )
 
-    system_message = build_system_message(snapshot)
+    system_message = build_system_message(snapshot, lang=lang)
     sem = asyncio.Semaphore(concurrency)
     votes: list[PersonaVote] = []
     usage_records: list[dict] = []
@@ -324,7 +326,7 @@ async def _pipeline(
         t = ag_progress.add_task(
             "[cyan]Transcribing the augury...", total=None
         )
-        verdict, narrative = await synthesize_narrative(client, ticker, snapshot, votes)
+        verdict, narrative = await synthesize_narrative(client, ticker, snapshot, votes, lang=lang)
         ag_progress.update(t, description="[green]✔ Augury complete")
         ag_progress.stop_task(t)
 
@@ -377,6 +379,14 @@ def run(
     ] = None,
     out: Annotated[Path | None, typer.Option(help="Output directory for reports")] = None,
     concurrency: Annotated[int, typer.Option(help="Max concurrent persona calls")] = 10,
+    lang: Annotated[
+        str,
+        typer.Option(
+            "--lang",
+            help="Output language for narrative/reasoning text (e.g. en, zh, ja, es). "
+            "JSON keys and enum values stay in English.",
+        ),
+    ] = "en",
     verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Debug logging")] = False,
 ) -> None:
     """Convene the council, read the omens, write the augury."""
@@ -415,7 +425,7 @@ def run(
 
     try:
         votes, run_stats, verdict, narrative, snapshot = asyncio.run(
-            _pipeline(ticker, selected, concurrency, provider)
+            _pipeline(ticker, selected, concurrency, provider, lang)
         )
     except QueryPlanningError as e:
         console.print()

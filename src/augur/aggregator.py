@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 
 from openai import AsyncOpenAI
 
-from augur.client import get_model_synthesis
+from augur.client import get_model_synthesis, language_instruction
 from augur.json_utils import extract_json
 from augur.schemas import PersonaVote, Snapshot
 
@@ -89,6 +89,7 @@ async def synthesize_narrative(
     ticker: str,
     snapshot: Snapshot,
     votes: list[PersonaVote],
+    lang: str = "en",
 ) -> tuple[str, str]:
     """Ask the synthesis model for a one-sentence verdict and a narrative.
 
@@ -101,7 +102,10 @@ async def synthesize_narrative(
 
     votes_text = _format_votes_for_prompt(votes)
     messages = [
-        {"role": "system", "content": AGGREGATOR_SYSTEM},
+        {
+            "role": "system",
+            "content": AGGREGATOR_SYSTEM + language_instruction(lang),
+        },
         {
             "role": "user",
             "content": (

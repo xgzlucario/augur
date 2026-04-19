@@ -5,7 +5,7 @@ from typing import Callable
 
 from openai import AsyncOpenAI
 
-from augur.client import get_model_synthesis
+from augur.client import get_model_synthesis, language_instruction
 from augur.json_utils import extract_json
 from augur.schemas import Snapshot
 from augur.search import SearchProvider, SearchResult, run_queries
@@ -135,12 +135,16 @@ async def _synthesize_from_search(
     ticker: str,
     as_of: str,
     results: dict[str, list[SearchResult]],
+    lang: str = "en",
 ) -> Snapshot:
     search_text = _format_search_results(results)
     response = await client.chat.completions.create(
         model=get_model_synthesis(),
         messages=[
-            {"role": "system", "content": SNAPSHOT_FROM_SEARCH_SYSTEM},
+            {
+                "role": "system",
+                "content": SNAPSHOT_FROM_SEARCH_SYSTEM + language_instruction(lang),
+            },
             {
                 "role": "user",
                 "content": (
@@ -170,6 +174,7 @@ async def build_snapshot(
     search_provider: SearchProvider,
     on_queries: Callable[[list[str]], None] | None = None,
     on_search_results: Callable[[int, int], None] | None = None,
+    lang: str = "en",
 ) -> Snapshot:
     """Phase 1: produce a market snapshot grounded in live web search.
 
@@ -212,4 +217,4 @@ async def build_snapshot(
             f"Check the provider's status/quota or try a different ticker."
         )
 
-    return await _synthesize_from_search(client, ticker, as_of, results)
+    return await _synthesize_from_search(client, ticker, as_of, results, lang=lang)

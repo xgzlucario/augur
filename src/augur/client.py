@@ -40,3 +40,36 @@ def get_model_synthesis() -> str:
     if not model:
         raise RuntimeError("OPENAI_MODEL_SYNTHESIS not set. See .env.example.")
     return model
+
+
+# ISO-ish code → human-readable name the model will recognize.
+# Unknown codes pass through so users can write any language name directly
+# (e.g. --lang "Brazilian Portuguese").
+_LANG_NAMES = {
+    "en": "English",
+    "zh": "Chinese (Simplified, 简体中文)",
+    "ja": "Japanese (日本語)",
+    "ko": "Korean (한국어)",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "pt": "Portuguese",
+    "ru": "Russian",
+}
+
+
+def language_instruction(lang: str) -> str:
+    """One-line directive appended to every system prompt.
+
+    Returns empty string for English / en so the default prompt stays untouched.
+    """
+    key = lang.strip().lower()
+    if not key or key in ("en", "english"):
+        return ""
+    name = _LANG_NAMES.get(key, lang.strip())
+    return (
+        f"\n\nLANGUAGE: Write every free-text field in {name}. This includes "
+        f"narrative prose, reasoning, key_reasons, concerns, and any summary "
+        f"strings. Keep JSON keys, enum values (buy/hold/sell, short/medium/long, "
+        f"none/small/medium/large), and ticker symbols in English."
+    )

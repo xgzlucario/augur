@@ -3,7 +3,7 @@ import logging
 
 from openai import AsyncOpenAI
 
-from augur.client import get_model_research
+from augur.client import get_model_research, language_instruction
 from augur.json_utils import extract_json
 from augur.personas import Persona, render_persona_prompt
 from augur.schemas import PersonaVote, Snapshot
@@ -45,13 +45,14 @@ Do not search the web. Do not ask questions.
 """
 
 
-def build_system_message(snapshot: Snapshot) -> str:
+def build_system_message(snapshot: Snapshot, lang: str = "en") -> str:
     """Build the system message string. Many OpenAI-compatible providers do
     automatic prefix caching on identical system prompts across requests, so
     keeping this deterministic across persona calls is what gets us cache hits.
     """
     return (
         FRAMEWORK_INSTRUCTIONS
+        + language_instruction(lang)
         + "\n\nMARKET SNAPSHOT (shared across all personas):\n"
         + snapshot.model_dump_json(indent=2)
     )

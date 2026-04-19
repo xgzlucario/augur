@@ -90,9 +90,10 @@ OPENAI_MODEL_SYNTHESIS=gpt-4o      # 能力更强，每次完整运行调用3次
 
 EXA_API_KEY=                       # 从 https://exa.ai 获取
 TAVILY_API_KEY=                    # 从 https://tavily.com 获取
+SEARCH_PROVIDER=                   # 可选：填 exa 或 tavily 强制指定，留空则自动识别
 ```
 
-所有兼容OpenAI API格式的服务商都可以使用。一次完整运行通常需要1-2分钟，Token成本约1美元，加上少量搜索调用费用，报告默认保存在`./reports/<标的代码>_<YYYY-MM-DD>.md`。
+所有兼容OpenAI API格式的服务商都可以使用。一次完整运行通常需要1-2分钟，报告默认保存在`./reports/<标的代码>_<YYYY-MM-DD>.md`。
 
 ---
 

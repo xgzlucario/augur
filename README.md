@@ -90,9 +90,10 @@ OPENAI_MODEL_SYNTHESIS=gpt-4o      # Higher capability — called 3 times per ru
 
 EXA_API_KEY=                       # Get from https://exa.ai
 TAVILY_API_KEY=                    # Get from https://tavily.com
+SEARCH_PROVIDER=                   # Optional: exa|tavily to pin one provider; defaults to auto-detect
 ```
 
-Any OpenAI-compatible API provider works. A typical full run takes 1-2 minutes, costs roughly $1 in token fees plus a small number of search calls, and saves reports to `./reports/<TICKER>_<YYYY-MM-DD>.md`.
+Any OpenAI-compatible API provider works. A typical full run takes 1-2 minutes and saves reports to `./reports/<TICKER>_<YYYY-MM-DD>.md`.
 
 ---
 

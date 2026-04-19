@@ -45,28 +45,32 @@ BANNER = r"""
 GATHER_PROVERBS = [
     "\"The market can stay irrational longer than you can stay solvent.\" — Keynes",
     "\"Price is what you pay; value is what you get.\" — Buffett",
-    "\"Be fearful when others are greedy, greedy when others are fearful.\" — Buffett",
     "\"The big money is not in the buying and selling, but in the waiting.\" — Munger",
-    "\"Risk comes from not knowing what you're doing.\" — Buffett",
     "\"It's not whether you're right or wrong, but how much you make when right.\" — Soros",
     "\"The four most dangerous words in investing are: this time it's different.\" — Templeton",
-    "\"In Rome, the augur read the flight of birds. In our age, we read the tape.\" — an augur",
+    "\"In Rome, the augur read the flight of birds. We read the tape.\" — an augur",
 ]
 
 SNAPSHOT_QUIPS = [
-    "Reading the tape. Peering into filings. Listening to the crowd.",
     "Watching the flight of birds over the market.",
-    "Gathering fundamentals, prices, and whispers from the street.",
-    "Casting the auspices before the masters convene.",
-    "Tracing patterns in the order flow.",
+    "Reading the tape; peering into filings.",
+    "Casting the auspices.",
+    "Listening for whispers on the street.",
+    "Taking the measure of the market.",
 ]
 
 DELIBERATION_QUIPS = [
-    "Sharpening pencils and cracking knuckles.",
-    "Each master disappears into their own study.",
-    "The room goes quiet. Only the sound of turning pages.",
-    "Thirty years of experience compressed into thirty seconds.",
-    "The augurs read the signs independently.",
+    "Each master retreats to their own study.",
+    "The room goes quiet. Only turning pages.",
+    "Decades of conviction, compressed into seconds.",
+    "The augurs read the signs, each alone.",
+    "Pens scratch. Paper rustles. No one speaks.",
+]
+
+AUGURY_QUIPS = [
+    "The editor compiles the minutes.",
+    "The augury is transcribed.",
+    "The council's verdict, put to paper.",
 ]
 
 
@@ -242,7 +246,7 @@ async def _pipeline(
         transient=True,
     ) as progress:
         t = progress.add_task(
-            f"[cyan]Planning queries and searching via {provider.name}...",
+            f"[cyan]Reading the signs via {provider.name}...",
             total=None,
         )
         snapshot = await build_snapshot(
@@ -256,11 +260,9 @@ async def _pipeline(
         progress.stop_task(t)
 
     console.print(
-        f"  [dim]•[/dim] Covering [cyan]{ticker}[/cyan] as of [bold]{snapshot.as_of}[/bold]"
-    )
-    console.print(
-        f"  [dim]•[/dim] {len(snapshot.recent_news)} news item(s) gathered; "
-        f"fundamentals and sector context assembled"
+        f"  [dim]•[/dim] [cyan]{ticker}[/cyan] as of [bold]{snapshot.as_of}[/bold] "
+        f"— fundamentals, price, sector, macro, "
+        f"{len(snapshot.recent_news)} news item(s)"
     )
     console.print()
 
@@ -269,8 +271,8 @@ async def _pipeline(
         f"[bold]Phase 2 · {random.choice(DELIBERATION_QUIPS)}[/bold]", style="cyan",
     ))
     console.print(
-        f"[dim]{len(personas)} investors deliberating "
-        f"(max {concurrency} at a time)...[/dim]\n"
+        f"[dim]{len(personas)} masters take the auspices "
+        f"(up to {concurrency} at once)...[/dim]\n"
     )
 
     system_message = build_system_message(snapshot)
@@ -301,14 +303,14 @@ async def _pipeline(
     n_success = len(votes)
     console.print()
     console.print(
-        f"[dim]  {n_success}/{len(personas)} votes collected in "
+        f"[dim]  {n_success}/{len(personas)} votes cast in "
         f"{phase2_duration:.1f}s[/dim]"
     )
     console.print()
 
     # Phase 3: synthesis
     console.print(Rule(
-        "[bold]Phase 3 · The editor compiles the minutes.[/bold]", style="cyan",
+        f"[bold]Phase 3 · {random.choice(AUGURY_QUIPS)}[/bold]", style="cyan",
     ))
     with Progress(
         SpinnerColumn(),
@@ -318,10 +320,10 @@ async def _pipeline(
         transient=True,
     ) as ag_progress:
         t = ag_progress.add_task(
-            "[cyan]Synthesizing the council's verdict...", total=None
+            "[cyan]Transcribing the augury...", total=None
         )
         narrative = await synthesize_narrative(client, ticker, snapshot, votes)
-        ag_progress.update(t, description="[green]✔ Synthesis complete")
+        ag_progress.update(t, description="[green]✔ Augury complete")
         ag_progress.stop_task(t)
 
     run_stats = RunStats(
@@ -381,12 +383,11 @@ def run(
     provider = get_provider()
     if provider is None:
         console.print(Panel(
-            "[red]No web search provider configured.[/red]\n\n"
-            "Augur requires live web search — the LLM's training data is too "
-            "stale for investment analysis.\n\n"
-            "[yellow]Set one of these in your .env:[/yellow]\n"
-            "  [cyan]EXA_API_KEY[/cyan]    — https://exa.ai\n"
-            "  [cyan]TAVILY_API_KEY[/cyan] — https://tavily.com",
+            "[red]No omens without eyes.[/red] Augur needs a search key — "
+            "the LLM's training data is too stale for this game.\n\n"
+            "[yellow]Add either to your .env:[/yellow]\n"
+            "  [cyan]EXA_API_KEY[/cyan]     https://exa.ai\n"
+            "  [cyan]TAVILY_API_KEY[/cyan]  https://tavily.com",
             title="[bold red]Web search required[/bold red]",
             border_style="red",
             padding=(1, 2),
@@ -409,22 +410,23 @@ def run(
     except QueryPlanningError as e:
         console.print()
         console.print(Panel(
-            f"[red]The LLM failed to plan search queries.[/red]\n\n"
+            f"[red]The oracle was silent.[/red]\n\n"
             f"[dim]{e}[/dim]\n\n"
-            f"[yellow]Tip:[/yellow] try a different synthesis model or raise "
-            f"the planner's max_tokens.",
+            f"[yellow]Try:[/yellow] a different synthesis model, "
+            f"or raise the planner's max_tokens.",
             title="[bold red]Query planning failed[/bold red]",
             border_style="red",
             padding=(1, 2),
         ))
         raise typer.Exit(1) from e
     except SearchFailedError as e:
+        alt = "tavily" if provider.name == "exa" else "exa"
         console.print()
         console.print(Panel(
-            f"[red]{e}[/red]\n\n"
-            f"[yellow]Tip:[/yellow] check your search provider's status / quota, "
-            f"or try [cyan]SEARCH_PROVIDER[/cyan]={provider.name == 'exa' and 'tavily' or 'exa'} "
-            f"with the alternate provider's key set.",
+            f"[red]The birds refuse to fly.[/red]\n\n"
+            f"[dim]{e}[/dim]\n\n"
+            f"[yellow]Try:[/yellow] [cyan]SEARCH_PROVIDER={alt}[/cyan] "
+            f"(with that provider's key in .env), or check your quota.",
             title="[bold red]Search returned no results[/bold red]",
             border_style="red",
             padding=(1, 2),

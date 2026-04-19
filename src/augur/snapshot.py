@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 class QueryPlanningError(RuntimeError):
     """Raised when the LLM fails to produce a valid search-query plan."""
 
+
 # ---------- Prompt 1: query planner ----------
 
 PLANNER_SYSTEM = """You are a research analyst planning a web search for a ticker.

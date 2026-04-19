@@ -286,7 +286,7 @@ async def _pipeline(
 
     async def _one(p: Persona) -> None:
         async with sem:
-            vote, usage = await run_persona(client, p, snapshot, ticker, system_message)
+            vote, usage = await run_persona(client, p, ticker, system_message)
             if vote is not None:
                 votes.append(vote)
             else:

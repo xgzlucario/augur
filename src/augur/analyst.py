@@ -61,14 +61,13 @@ def build_system_message(snapshot: Snapshot) -> str:
 async def run_persona(
     client: AsyncOpenAI,
     persona: Persona,
-    snapshot: Snapshot,
     ticker: str,
     system_message: str,
 ) -> tuple[PersonaVote | None, dict]:
     """Run one persona's analysis. Returns (vote, usage_dict). Vote is None on failure.
 
-    `system_message` is passed in so the orchestrator can build it ONCE and
-    reuse the exact same string across N persona calls — identical prefix bytes
+    `system_message` is built once per run (containing the framework + snapshot
+    JSON) and reused verbatim across N persona calls — identical prefix bytes
     are the prerequisite for any prefix caching the provider offers.
     """
     try:

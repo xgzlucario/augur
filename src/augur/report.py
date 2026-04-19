@@ -77,7 +77,7 @@ def render_report(
 ) -> str:
     generated = datetime.now().strftime("%Y-%m-%d %H:%M")
     parts = [
-        f"# Investment Council Report — {ticker}",
+        f"# The Augury — {ticker}",
         f"*Generated {generated}. Snapshot as of {snapshot.as_of}.*\n",
         DISCLAIMER,
         "\n## Synthesis\n",

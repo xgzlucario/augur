@@ -37,5 +37,5 @@ class PersonaVote(BaseModel):
 class RunStats(BaseModel):
     total_input_tokens: int = 0
     total_output_tokens: int = 0
-    failed_personas: list[str] = []
+    failed_personas: list[str] = Field(default_factory=list)
     duration_seconds: float = 0.0

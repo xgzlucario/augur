@@ -1,6 +1,8 @@
 # Augur · 占卜师
 
-> 一个由传奇投资大师组成的委员会，随召随到。喂它一个标的，读取神谕。
+> *古罗马，augur 是观察飞鸟方位、解读神意的祭司。任何邦国大事，元老院都要先听完占卜，方才投票。*
+>
+> *这位 augur 不读飞鸟——它读盘。*
 
 ```
  █████╗ ██╗   ██╗ ██████╗ ██╗   ██╗██████╗
@@ -9,99 +11,123 @@
 ██╔══██║██║   ██║██║   ██║██║   ██║██╔══██╗
 ██║  ██║╚██████╔╝╚██████╔╝╚██████╔╝██║  ██║
 ╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+    a council of masters, summoned on demand
 ```
 
-*Augur* —— 古罗马祭司，通过观察飞鸟方位解读神意。这位 augur 不读鸟，只读盘。
-
-15 位历史投资大师——巴菲特、芒格、格雷厄姆、索罗斯、达利欧、西蒙斯、
-凯茜·伍德……——共读同一份市场快照，各以自己的投资哲学独立思考、独立投票。最终
-由一位"编辑"整合共识与分歧，写成神谕。
-
 > [English README](./README.md)
+
+**Augur** 召集十八位历史上最具分量的投资人——巴菲特、芒格、格雷厄姆、索罗斯、
+达利欧、西蒙斯、凯茜·伍德、迈克尔·伯里——围成一桌，请每一位以自己的口吻、
+自己的体系，对你给出的标的做出判断。每位大师严格遵循自己的投资哲学。彼此并不
+迁就。最后一位"编辑"梳理票数、揭示分歧，写成神谕。
+
+你不会得到一个答案。你会得到那个答案背后的全部论证。
 
 **本项目不构成投资建议。** 仅供研究与娱乐。
 
 ---
 
-## 三幕流程
+## 为什么是议会，而不是神谕？
 
-**观鸟（The Auspices）。** 合成模型规划 4–6 个搜索 query；Exa 或 Tavily 并行
-执行；模型把 ~30 条命中压缩成一份共享 `Snapshot`。query 会实时打到终端——你
-能看到占卜师选择了去找什么。
+让任何通用大模型评价一只股票，得到的都是互联网舆论的平均值——含糊、四平八稳、
+转头就忘。投资里的真信号从来不在平均值里，而在那些**思考方式截然不同、却各自
+对得足够多次**的人之间的分歧里。
 
-**议事会（The Council）。** Augur 对每位大师各开一次 API 调用（默认 10 个并
-发）。每次调用发送**字节一致**的 system prompt（框架 + 快照），让 provider 的
-自动前缀缓存可以命中。research 模型以大师的口吻返回 `PersonaVote`：
-buy/hold/sell、时间尺度、仓位、理由、疑虑、2-3 段 in-voice 论述。每一
-票落地即刻流式打到终端；解析失败的大师被跳过，不影响整体。
-
-**神谕（The Augury）。** 本地统计按 action 和学派计票，合成模型通读全部投票，
-写一段中立的编辑叙事——共识、分歧、异见、改变立场的条件——落到 `./reports/` 下
-的 Markdown 报告。
-
-典型 run：**1–2 分钟**、~30 条命中、3 次合成调用 + N 次研究调用。
+Augur 把分歧请回了桌前。巴菲特和凯茜·伍德看同一份财报，会得出截然相反的结论
+——并非谁不懂，而是哲学不同。十八位大师，十八种镜片，一个标的。神谕呈现的，是
+你只有把他们关进同一间屋子才能看到的东西。
 
 ---
 
-## 安装
+## 三幕流程
 
-**推荐**——全局一条命令：
+### 第一幕 · 观鸟（The Auspices）
+
+研究模型规划 4–6 条搜索 query——一个真分析师开局会问的那种问题——交由 Exa 或
+Tavily 并行执行。命中结果被压缩成一份立场中立的**市场快照**：公司是什么、近期
+价格如何、行业坐标在哪、宏观背景怎样。
+
+每一个论断都根植于实时网页结果。陈旧的训练知识，永远不够用。
+
+### 第二幕 · 议事会（The Council）
+
+快照被同时摆到十八位大师面前。每人收到**完全相同**的简报，以自己的口吻返回一
+张 `PersonaVote`：**buy / hold / sell**、时间尺度、仓位大小、关键理由、主要疑
+虑，外加 2–3 段的 in-character 论述。
+
+**他们独立投票。** 巴菲特看不到索罗斯，格雷厄姆看不到伍德。分歧之所以真实，正
+因为每一份审议都是私下做出的。
+
+最多 10 位大师并发推理；用快模型时，整桌议事会一分钟内就能交卷。
+
+### 第三幕 · 神谕（The Augury）
+
+资深编辑——合成模型——通读全部投票，权衡各学派的力量对比，写出**神谕**：一句
+话的判决，加一段平衡的叙事，覆盖共识、分歧、最具冲击力的少数派声音，以及哪些
+催化剂会让大师们改变立场。
+
+完整的议事会记录——每位大师的独立推理、按学派的票数分布、被引用最多的理由与
+顾虑——会落到一份 Markdown 报告里，可读、可分享、可拼进你自己的分析流程。
+
+---
+
+## 议事会名册
+
+十八位大师，五大学派：
+
+| 学派 | 大师 |
+|---|---|
+| **价值（Value）** | 巴菲特 · 芒格 · 格雷厄姆 · 克拉曼 · 马克斯 · 格兰瑟姆 |
+| **成长（Growth）** | 林奇 · 费雪 · 凯茜·伍德 · 尼克·斯利普 |
+| **宏观（Macro）** | 索罗斯 · 达利欧 · 德鲁肯米勒 |
+| **量化（Quant）** | 西蒙斯 · 阿斯尼斯 |
+| **逆向（Contrarian）** | 邓普顿 · 德雷曼 · 迈克尔·伯里 |
+
+每位大师都是一个 YAML 文件，描述其投资哲学、信奉的指标、拒绝触碰的形态、说话
+的腔调。新增一位，只需十行。
+
+---
+
+## 快速开始
 
 ```bash
 uv tool install git+https://github.com/xgzlucario/augur.git
-augur list-personas   # 应显示 15 位大师
+augur list-personas        # 确认十八位悉数到场
+augur run AAPL             # 召集议事会
 ```
 
-从源码：
-
-```bash
-git clone https://github.com/xgzlucario/augur.git && cd augur
-python3 -m venv .venv && .venv/bin/pip install -e .
-.venv/bin/augur list-personas
-```
-
-需 Python 3.11+。
-
----
-
-## 配置
-
-在你运行 `augur` 的目录下放一个 `.env`：
+Augur 需要两把钥匙：一个 LLM provider，一个搜索 provider。在你打算运行 augur
+的目录下放一个 `.env`：
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=                  # OpenAI 官方留空；其他 provider 填完整 URL
-OPENAI_MODEL_RESEARCH=gpt-4o-mini # N 次（每位大师一次）→ 选便宜快的
-OPENAI_MODEL_SYNTHESIS=gpt-4o     # 3 次（规划/快照/叙事）→ 选强的
+OPENAI_BASE_URL=                   # OpenAI 官方留空；其他 provider 填完整 URL
+OPENAI_MODEL_RESEARCH=gpt-4o-mini  # 便宜快——每位大师调用一次
+OPENAI_MODEL_SYNTHESIS=gpt-4o      # 强——整场调用三次
 
-# 搜索——必填
-EXA_API_KEY=                      # https://exa.ai
-TAVILY_API_KEY=                   # https://tavily.com
-# SEARCH_PROVIDER=exa             # 两个 key 都设时强制选用某个
+EXA_API_KEY=                       # https://exa.ai
+TAVILY_API_KEY=                    # https://tavily.com
 ```
 
-两个搜索 key 都配？默认使用 Exa，除非 `SEARCH_PROVIDER=tavily`。报告写到调用
-目录下的 `./reports/`。
+任何 OpenAI 兼容 provider 都能跑。一次完整 run 通常 1–2 分钟，token 成本约一
+美元，外加少量搜索调用。报告生成至 `./reports/<TICKER>_<YYYY-MM-DD>.md`。
 
 ---
 
-## 使用
+## 用法
 
 ```bash
-augur run AAPL                              # 完整 council
-augur run TSLA --limit 5                    # 限定数量
+augur run AAPL                              # 完整议事会
+augur run TSLA --limit 5                    # 限定大师数量
 augur run NVDA --schools value,contrarian   # 限定学派
 augur run BTC --concurrency 5               # 降低并发
-augur run AAPL --lang zh                    # 用中文生成叙事和理由
-augur list-personas                          # 查看名单
-augur run AAPL -v                            # 详细日志
+augur run AAPL --lang zh                    # 用中文输出叙事
+augur run AAPL -v                           # 详细日志
 ```
 
-报告文件：`reports/<TICKER>_<YYYY-MM-DD>.md`。
-
 `--lang` 支持 `en`（默认）、`zh`、`ja`、`ko`、`es`、`fr`、`de`、`pt`、`ru`，以
-及任何模型能识别的语言名。自由文本字段（叙事、推理、key_reasons、concerns）按
-指定语言输出；JSON 键、枚举值（buy/hold/sell…）和 ticker 保持英文。
+及任何模型能识别的语言名。自由文本字段按指定语言输出；结构性字段（action、仓
+位、ticker）保持英文，下游工具不受影响。
 
 ---
 
@@ -116,51 +142,18 @@ school: value              # value | growth | macro | quant | contrarian
 philosophy: |
   1-2 句核心信念。
 key_metrics:
-  - 关注指标 1
+  - 最关注的指标
 avoids:
-  - 回避清单 1
+  - 拒绝触碰的形态
 voice: |
-  语气、口头禅、常引用的话。
+  语气、口头禅、为人熟知的金句。
 ```
 
-所有 YAML 的 `id` 必须唯一。默认内置 15 位大师，涵盖五大学派（价值、成长、宏
-观、量化、逆向）。
-
----
-
-## 项目结构
-
-```
-src/augur/
-  cli.py           Typer 入口 + fan-out 流水线
-  snapshot.py      Phase 1 —— 规划 → 搜索 → 合成
-  analyst.py       单位大师 → 单票 PersonaVote
-  aggregator.py    统计 + 叙事
-  search.py        Exa & Tavily provider
-  personas.py      YAML 加载 + prompt 渲染
-  schemas.py       Pydantic 模型
-  client.py        AsyncOpenAI + 模型 getter
-  report.py        Markdown 渲染
-  json_utils.py    宽容 JSON 提取
-personas/          按学派分组的 YAML（随 package 打包）
-reports/           生成的占卜报告（已 gitignore）
-```
-
----
-
-## 设计笔记
-
-- **双模型层。** research 模型跑 N 次（每位大师一次），synthesis 模型跑 3 次。
-  下层用便宜快的、上层用强的——规模化后省一个量级的钱。
-- **不用 `response_format`。** 许多 OpenAI 兼容 provider 对 `json_object` 处理
-  不一致。Augur 只靠 prompt 约束，加一个宽容解析器处理 markdown fence 和前后
-  杂文。
-- **失败大声。** 查询规划失败或搜索返回 0 命中 → 红色错误 panel 退出。过期的
-  训练知识比没有答案还糟。
+`augur list-personas` 下次运行就会自动收录。所有 YAML 的 `id` 必须全局唯一。
 
 ---
 
 ## 免责声明
 
-Augur 模拟的是历史上的投资人格。输出是思考工具，不是投资决策。实际交易前请咨
-询持牌专业人士。
+Augur 模拟的是历史上的投资人格，仅供研究与教育用途。其神谕是一件**思考工具**
+，不是投资决策。市场欠任何人一份说法。实际交易前，请咨询持牌专业人士。

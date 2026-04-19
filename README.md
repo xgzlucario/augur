@@ -1,8 +1,8 @@
 # Augur
 
-> *In ancient Rome, an augur was the priest who read the will of the gods from the flight of birds. Before any matter of state, no senator dared vote without first consulting the augury.*
+> *In ancient Rome, an augur was the priest who interpreted the will of the gods by observing the flight of birds. No senator dared vote on any state matter before consulting the augury first.*
 >
-> *This one reads the tape.*
+> *This augur doesn't read birds. It reads the tape.*
 
 ```
  █████╗ ██╗   ██╗ ██████╗ ██╗   ██╗██████╗
@@ -16,32 +16,19 @@
 
 > [中文 README](./README.zh-CN.md)
 
-**Augur** convenes a council of eighteen of history's most consequential
-investors — Buffett, Munger, Graham, Soros, Dalio, Simons, Cathie Wood,
-Burry — and asks each, in their own voice, to render a verdict on the
-ticker you give it. Each master reasons strictly within their own school of
-thought. None defers to the others. A final editor reconciles the votes,
-surfaces the dissent, and writes the augury.
+**Augur** convenes a council of 18 of the most legendary investors in history — Buffett, Munger, Graham, Soros, Dalio, Simons, Cathie Wood, Michael Burry, and more — each delivering a verdict on your chosen ticker strictly through the lens of their own investment philosophy. No master defers to another, no opinion is watered down for consensus. A final editor synthesizes all votes, surfaces the most critical disagreements, and writes the final augury.
 
-You don't get an answer. You get the argument that produces one.
+You don't get a generic answer. You get the full argument that produces one.
 
-**Not financial advice. Research and entertainment.**
+**Not financial advice. For research and entertainment purposes only.**
 
 ---
 
-## Why a council, and not just an oracle?
+## Why a council, not just an oracle?
 
-Ask any general-purpose model what it thinks of a stock and you'll get the
-average of the internet — equivocal, hedged, forgettable. The signal in
-investing has never lived in averages. It lives in the *disagreements*
-between people who think very differently and have each been right enough,
-often enough, to be worth listening to.
+Ask any generic LLM for a stock opinion, and you'll get the watered-down average of every hot take on the internet — equivocal, over-hedged, instantly forgettable. Real investing signal never lives in the middle of the bell curve. It lives in the disagreements between exceptional minds who think wildly differently, and have proven their judgment right enough times to matter.
 
-Augur restores the disagreement. Buffett would have looked at the same
-spreadsheet as Cathie Wood and reached the opposite conclusion — not from
-ignorance, but from philosophy. Eighteen masters, eighteen lenses, one
-ticker. The augury is what you can see only when you put them in the same
-room.
+Augur brings those disagreements front and center. Buffett would look at the exact same spreadsheet as Cathie Wood and reach the opposite conclusion — not out of ignorance, but out of fundamentally different core beliefs. 18 masters, 18 unique lenses, one single ticker. The augury is what you can only see when you put all of them in the same room.
 
 ---
 
@@ -49,44 +36,29 @@ room.
 
 ### I · The Auspices
 
-A research model plans four to six search queries — the questions a real
-analyst would ask first — and Exa or Tavily executes them in parallel.
-The hits are condensed into a single, balanced **market snapshot**: what
-the company is, how the price has moved, where it sits in its sector, and
-what the macro backdrop looks like.
+A dedicated research model generates 4-6 targeted search queries — the exact questions a professional analyst would ask first — which are executed in parallel via Exa or Tavily. All results are condensed into a single, unbiased **market snapshot**: what the company does, how its price has moved recently, where it stands in its sector, and the current macro backdrop.
 
-Every claim in the snapshot is grounded in a live web result. Stale
-training knowledge is never enough.
+Every claim in the snapshot is grounded in real-time web results. Stale training data is never used as the sole source of truth.
 
 ### II · The Council
 
-The snapshot is laid before all eighteen masters at once. Each receives
-the *same* briefing and replies in their own voice with a `PersonaVote`:
-**buy / hold / sell**, time horizon, position size, key reasons, concerns,
-and two or three paragraphs of reasoning in-character.
+The snapshot is presented to all 18 masters simultaneously. Each receives the *exact same briefing* and replies in their signature voice with a `PersonaVote`: **buy / hold / sell**, time horizon, recommended position size, core reasoning, key concerns, and 2-3 paragraphs of in-character analysis.
 
-They vote independently. Buffett doesn't see Soros. Graham doesn't see
-Wood. The dissent is real because the deliberation is private.
+All votes are fully independent. Buffett never sees Soros's opinion. Graham never sees Wood's take. The disagreements are genuine because deliberation happens entirely in private.
 
-Up to ten masters reason in parallel; on a fast model the full council
-returns in under a minute.
+Up to 10 masters run in parallel; on a fast LLM, the full council returns results in under a minute.
 
 ### III · The Augury
 
-A senior editor — the synthesis model — reads every vote, weighs the
-schools against each other, and composes the **augury**: a one-sentence
-verdict and a balanced narrative covering consensus, fractures, the most
-striking contrarian voices, and the catalysts that would change minds.
+A senior synthesis model reads every single vote, weighs the perspectives of different schools of thought against each other, and composes the final **augury**: a one-sentence verdict plus a balanced narrative covering consensus points, core fractures, the most striking contrarian opinions, and key catalysts that would change the masters' minds.
 
-The full transcript — every master's individual reasoning, the vote
-distribution by school, the most cited reasons and concerns — is written
-to a Markdown report you can read, share, or feed into your own analysis.
+The full transcript — every master's individual reasoning, vote distribution by school, most frequently cited reasons and concerns — is saved as a Markdown report you can read, share, or integrate into your own analysis workflow.
 
 ---
 
 ## The Council
 
-Eighteen masters across five schools of thought:
+18 masters across 5 distinct schools of thought:
 
 | School | Masters |
 |---|---|
@@ -96,9 +68,7 @@ Eighteen masters across five schools of thought:
 | **Quant** | Simons · Asness |
 | **Contrarian** | Templeton · Dreman · Burry |
 
-Each persona is a YAML file describing a philosophy, the metrics they
-worship, the patterns they refuse to touch, and the cadence of their
-voice. Adding your own takes ten lines.
+Each persona is defined in a simple YAML file describing their core philosophy, preferred metrics, red flags they avoid, and unique voice. Adding your own custom master takes just 10 lines.
 
 ---
 
@@ -106,73 +76,63 @@ voice. Adding your own takes ten lines.
 
 ```bash
 uv tool install git+https://github.com/xgzlucario/augur.git
-augur list-personas        # confirm the eighteen are present
-augur run AAPL             # convene the council
+augur list-personas        # Verify all 18 masters are available
+augur run AAPL             # Convene the full council
 ```
 
-Augur needs two keys: an LLM provider and a search provider. Drop them in
-a `.env` file in the directory where you'll run it:
+Augur requires two sets of credentials: an LLM provider and a search provider. Add them to a `.env` file in the directory where you will run Augur:
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=                   # blank for OpenAI; full URL for others
-OPENAI_MODEL_RESEARCH=gpt-4o-mini  # cheap & fast — runs once per master
-OPENAI_MODEL_SYNTHESIS=gpt-4o      # strong — runs three times per session
+OPENAI_BASE_URL=                   # Leave blank for OpenAI; fill full URL for other compatible providers
+OPENAI_MODEL_RESEARCH=gpt-4o-mini  # Cheap & fast — called once per master
+OPENAI_MODEL_SYNTHESIS=gpt-4o      # Higher capability — called 3 times per run
 
-EXA_API_KEY=                       # https://exa.ai
-TAVILY_API_KEY=                    # https://tavily.com
+EXA_API_KEY=                       # Get from https://exa.ai
+TAVILY_API_KEY=                    # Get from https://tavily.com
 ```
 
-Any OpenAI-compatible provider works. A typical run takes one to two
-minutes and costs roughly a dollar in tokens plus a handful of search
-calls. Reports land under `./reports/<TICKER>_<YYYY-MM-DD>.md`.
+Any OpenAI-compatible API provider works. A typical full run takes 1-2 minutes, costs roughly $1 in token fees plus a small number of search calls, and saves reports to `./reports/<TICKER>_<YYYY-MM-DD>.md`.
 
 ---
 
 ## Usage
 
 ```bash
-augur run AAPL                              # full council
-augur run TSLA --limit 5                    # subset
-augur run NVDA --schools value,contrarian   # one or more schools
-augur run BTC --concurrency 5               # dial back parallelism
-augur run AAPL --lang zh                    # narrative in Chinese
-augur run AAPL -v                           # verbose logging
+augur run AAPL                              # Full council vote
+augur run TSLA --limit 5                    # Use only top 5 masters
+augur run NVDA --schools value,contrarian   # Restrict to specific schools of thought
+augur run BTC --concurrency 5               # Reduce parallelism for rate-limited providers
+augur run AAPL --lang zh                    # Output narrative in Chinese
+augur run AAPL -v                           # Enable verbose logging
 ```
 
-`--lang` accepts `en` (default), `zh`, `ja`, `ko`, `es`, `fr`, `de`, `pt`,
-`ru`, or any language name the model understands. Free-text fields follow
-the chosen language; structural fields (action, sizing, ticker) stay
-English so downstream tooling keeps working.
+The `--lang` flag supports `en` (default), `zh`, `ja`, `ko`, `es`, `fr`, `de`, `pt`, `ru`, and any other language your LLM understands. Free text fields follow the selected language, while structural fields (action, position size, ticker) remain in English for compatibility with downstream tooling.
 
 ---
 
-## Add a Master
+## Add Your Own Master
 
-Drop a YAML under `personas/<school>/<id>.yaml`:
+Create a new YAML file under `personas/<school>/<id>.yaml`:
 
 ```yaml
 id: my_master
 name: My Master
 school: value              # value | growth | macro | quant | contrarian
 philosophy: |
-  A sentence or two of core belief.
+  One or two sentences describing their core investment belief.
 key_metrics:
-  - The metrics they care about most
+  - List of metrics they prioritize above all else
 avoids:
-  - The patterns they refuse to touch
+  - List of patterns or red flags they will never invest in
 voice: |
-  Tone, mannerisms, the lines they're known for.
+  Description of their tone, mannerisms, and famous quotes they're known for.
 ```
 
-`augur list-personas` will pick them up on the next run. IDs must be
-unique across the corpus.
+Your new master will automatically appear in `augur list-personas` on the next run. All persona IDs must be unique across the entire corpus.
 
 ---
 
 ## Disclaimer
 
-Augur simulates historical investor personas for research and educational
-purposes only. The verdicts are a thinking tool, not an investment
-decision. Markets owe no one a reading. Consult a licensed professional
-before putting capital to work.
+Augur simulates historical investor personas for research and educational purposes only. All outputs are thinking tools, not investment advice. Markets have no obligation to match any model's predictions. Always consult a licensed financial professional before making investment decisions.

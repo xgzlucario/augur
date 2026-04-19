@@ -125,7 +125,6 @@ def render_planned_queries(provider_name: str, queries: list[str]) -> None:
         return
     console.print(Text.assemble(
         ("  ", ""),
-        ("📜 ", ""),
         (f"Planned {len(queries)} ", "dim"),
         (f"{provider_name} ", "bold cyan"),
         ("queries:", "dim"),
@@ -141,7 +140,6 @@ def render_search_summary(total_hits: int, n_queries: int) -> None:
     avg = total_hits / n_queries if n_queries else 0
     console.print(Text.assemble(
         ("  ", ""),
-        ("🔎 ", ""),
         (f"Got {total_hits} results ", "bold green"),
         (f"across {n_queries} queries (avg {avg:.1f}/query)", "dim"),
     ))
@@ -183,7 +181,7 @@ def council_progress(n_personas: int, concurrency: int):
 def _vote_line(persona, vote):
     if vote is None:
         return Text.assemble(
-            ("  💀 ", "dim"),
+            ("  × ", "red dim"),
             (f"{persona.name:<24}", "dim strike"),
             (f"[{persona.school}]".ljust(14), "dim"),
             ("failed to vote", "red dim"),
@@ -247,7 +245,7 @@ def render_final_panel(
         color, icon = _action_style(winner)
         headline = f"{icon} Lean: [{color} bold]{winner.upper()}[/{color} bold]"
     else:
-        headline = "⚖️  [bold]The council is split.[/bold]"
+        headline = "[bold]The council is split.[/bold]"
 
     stats_table = Table.grid(padding=(0, 1))
     stats_table.add_column(style="dim")

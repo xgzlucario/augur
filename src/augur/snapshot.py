@@ -12,6 +12,10 @@ from augur.search import SearchProvider, SearchResult, run_queries
 
 log = logging.getLogger(__name__)
 
+
+class QueryPlanningError(RuntimeError):
+    """Raised when the LLM fails to produce a valid search-query plan."""
+
 # ---------- Prompt 1: query planner ----------
 
 PLANNER_SYSTEM = """You are a research analyst planning a web search for a ticker.
@@ -50,22 +54,31 @@ async def _plan_queries(client: AsyncOpenAI, ticker: str, as_of: str) -> list[st
     content = response.choices[0].message.content or ""
     try:
         data = extract_json(content)
-        queries = data.get("queries") or []
-    except (json.JSONDecodeError, AttributeError) as e:
-        log.warning(
-            f"query planner returned unparsable output ({type(e).__name__}); "
-            f"falling back to defaults. First 200 chars: {content[:200]!r}"
-        )
-        queries = []
+    except json.JSONDecodeError as e:
+        raise QueryPlanningError(
+            f"query planner returned unparsable output: {e}. "
+            f"First 300 chars of response: {content[:300]!r}"
+        ) from e
 
+    if not isinstance(data, dict):
+        raise QueryPlanningError(
+            f"query planner returned non-object JSON: {type(data).__name__}. "
+            f"Content: {content[:300]!r}"
+        )
+
+    raw_queries = data.get("queries")
+    if not isinstance(raw_queries, list) or not raw_queries:
+        raise QueryPlanningError(
+            f"query planner JSON missing non-empty 'queries' array. "
+            f"Got: {data!r}"
+        )
+
+    queries = [str(q).strip() for q in raw_queries if str(q).strip()]
     if not queries:
-        queries = [
-            f"{ticker} latest earnings results",
-            f"{ticker} stock price analysis recent",
-            f"{ticker} analyst ratings price target",
-            f"{ticker} competitive landscape risks",
-        ]
-    return [str(q) for q in queries if q]
+        raise QueryPlanningError(
+            f"query planner returned only empty queries. Got: {raw_queries!r}"
+        )
+    return queries
 
 
 # ---------- Prompt 2: synthesize snapshot from search results ----------

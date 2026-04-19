@@ -22,7 +22,7 @@ from augur.personas import Persona, filter_personas, load_all
 from augur.report import render_report, write_report
 from augur.schemas import PersonaVote, RunStats
 from augur.search import get_provider
-from augur.snapshot import build_snapshot
+from augur.snapshot import QueryPlanningError, build_snapshot
 
 app = typer.Typer(
     help="Augur — a council of legendary investors, summoned on demand. "
@@ -396,9 +396,23 @@ def run(
 
     _render_banner(ticker, len(selected), concurrency, search_on)
 
-    votes, run_stats, narrative, snapshot = asyncio.run(
-        _pipeline(ticker, selected, concurrency, search_on)
-    )
+    try:
+        votes, run_stats, narrative, snapshot = asyncio.run(
+            _pipeline(ticker, selected, concurrency, search_on)
+        )
+    except QueryPlanningError as e:
+        console.print()
+        console.print(Panel(
+            f"[red]The LLM failed to plan search queries.[/red]\n\n"
+            f"[dim]{e}[/dim]\n\n"
+            f"[yellow]Tip:[/yellow] try a different synthesis model, raise "
+            f"the planner's max_tokens, or run with [cyan]--no-search[/cyan] "
+            f"to fall back to LLM-only snapshot.",
+            title="[bold red]Query planning failed[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        ))
+        raise typer.Exit(1) from e
 
     stats = compute_stats(votes)
     report_md = render_report(ticker, snapshot, votes, stats, narrative, run_stats)

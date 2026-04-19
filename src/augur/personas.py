@@ -11,7 +11,6 @@ class Persona(BaseModel):
     id: str
     name: str
     school: School
-    era: str = ""
     philosophy: str
     key_metrics: list[str] = Field(default_factory=list)
     avoids: list[str] = Field(default_factory=list)

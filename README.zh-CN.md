@@ -111,7 +111,6 @@ augur run AAPL -v                            # 详细日志
 id: my_master
 name: My Master
 school: value              # value | growth | macro | quant | contrarian
-era: "1980-2020"
 philosophy: |
   1-2 句核心信念。
 key_metrics:

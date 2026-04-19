@@ -118,7 +118,6 @@ Drop a YAML under `personas/<school>/<id>.yaml`:
 id: my_master
 name: My Master
 school: value              # value | growth | macro | quant | contrarian
-era: "1980-2020"
 philosophy: |
   A sentence or two of core belief.
 key_metrics:

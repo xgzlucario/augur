@@ -133,6 +133,7 @@ def _render_final_panel(
     stats: dict,
     run_stats: RunStats,
     report_path: Path,
+    verdict: str,
 ) -> Panel:
     total = stats["total"]
     by_action = stats["by_action"]
@@ -180,13 +181,17 @@ def _render_final_panel(
         )
     stats_table.add_row("Report", f"[link=file://{report_path}]{report_path}[/link]")
 
-    body = Group(
-        Text.from_markup(headline, justify="center"),
+    body_parts = [Text.from_markup(headline, justify="center")]
+    if verdict:
+        body_parts.append(Text(""))
+        body_parts.append(Text(f"“{verdict}”", style="italic", justify="center"))
+    body_parts.extend([
         Text(""),
         verdict_table,
         Text(""),
         stats_table,
-    )
+    ])
+    body = Group(*body_parts)
     return Panel(
         body,
         title=f"[bold]The Augury — {ticker}[/bold]",
@@ -203,7 +208,7 @@ async def _pipeline(
     personas: list[Persona],
     concurrency: int,
     provider: "object",
-) -> tuple[list[PersonaVote], RunStats, str, "object"]:
+) -> tuple[list[PersonaVote], RunStats, str, str, "object"]:
     client = get_client()
     t_start = time.time()
 
@@ -322,9 +327,17 @@ async def _pipeline(
         t = ag_progress.add_task(
             "[cyan]Transcribing the augury...", total=None
         )
-        narrative = await synthesize_narrative(client, ticker, snapshot, votes)
+        verdict, narrative = await synthesize_narrative(client, ticker, snapshot, votes)
         ag_progress.update(t, description="[green]✔ Augury complete")
         ag_progress.stop_task(t)
+
+    if verdict:
+        console.print()
+        console.print(Text.assemble(
+            ("  📜 ", ""),
+            ("Verdict: ", "dim"),
+            (f"“{verdict}”", "italic bold"),
+        ))
 
     run_stats = RunStats(
         total_input_tokens=sum(u.get("prompt_tokens", 0) for u in usage_records),
@@ -332,7 +345,7 @@ async def _pipeline(
         failed_personas=failed_ids,
         duration_seconds=time.time() - t_start,
     )
-    return votes, run_stats, narrative, snapshot
+    return votes, run_stats, verdict, narrative, snapshot
 
 
 # ---------- Commands ----------
@@ -404,7 +417,7 @@ def run(
     _render_banner(ticker, len(selected), concurrency, provider.name)
 
     try:
-        votes, run_stats, narrative, snapshot = asyncio.run(
+        votes, run_stats, verdict, narrative, snapshot = asyncio.run(
             _pipeline(ticker, selected, concurrency, provider)
         )
     except QueryPlanningError as e:
@@ -434,11 +447,11 @@ def run(
         raise typer.Exit(1) from e
 
     stats = compute_stats(votes)
-    report_md = render_report(ticker, snapshot, votes, stats, narrative, run_stats)
+    report_md = render_report(ticker, snapshot, votes, stats, verdict, narrative, run_stats)
     path = write_report(report_md, out, ticker, snapshot.as_of)
 
     console.print()
-    console.print(_render_final_panel(ticker, stats, run_stats, path))
+    console.print(_render_final_panel(ticker, stats, run_stats, path, verdict))
 
 
 @app.command()

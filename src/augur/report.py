@@ -72,6 +72,7 @@ def render_report(
     snapshot: Snapshot,
     votes: list[PersonaVote],
     stats: dict,
+    verdict: str,
     narrative: str,
     run_stats: RunStats,
 ) -> str:
@@ -80,6 +81,10 @@ def render_report(
         f"# The Augury — {ticker}",
         f"*Generated {generated}. Snapshot as of {snapshot.as_of}.*\n",
         DISCLAIMER,
+    ]
+    if verdict:
+        parts.extend(["\n## Verdict\n", f"> **{verdict}**\n"])
+    parts.extend([
         "\n## Synthesis\n",
         narrative,
         "\n",
@@ -100,7 +105,7 @@ def render_report(
         f"- Failed personas: {', '.join(run_stats.failed_personas) if run_stats.failed_personas else 'none'}",
         f"- Total prompt tokens: {run_stats.total_input_tokens:,}",
         f"- Total completion tokens: {run_stats.total_output_tokens:,}",
-    ]
+    ])
     return "\n".join(parts)
 
 

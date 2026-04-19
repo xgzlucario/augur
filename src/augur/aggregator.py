@@ -1,9 +1,29 @@
+import json
+import logging
+import re
 from collections import Counter, defaultdict
 
 from openai import AsyncOpenAI
 
 from augur.client import get_model_synthesis
+from augur.json_utils import extract_json
 from augur.schemas import PersonaVote, Snapshot
+
+log = logging.getLogger(__name__)
+
+# Matches `"verdict": "..."` tolerating escaped quotes inside the value.
+_VERDICT_RE = re.compile(r'"verdict"\s*:\s*"((?:[^"\\]|\\.)*)"', re.DOTALL)
+
+
+def _salvage_verdict(text: str) -> str:
+    """Extract the verdict string even from truncated / non-JSON content."""
+    m = _VERDICT_RE.search(text)
+    if not m:
+        return ""
+    try:
+        return json.loads(f'"{m.group(1)}"')
+    except json.JSONDecodeError:
+        return m.group(1).strip()
 
 
 def compute_stats(votes: list[PersonaVote]) -> dict:
@@ -70,7 +90,19 @@ The reader wants to understand WHY schools of thought disagree, not a generic
 average. Quote specific personas where their reasoning stands out. Be concise
 and structured — the deterministic vote statistics are rendered separately.
 
-Output plain Markdown. No preamble, no disclaimer (those are added elsewhere).
+OUTPUT RULES (critical):
+- Respond with a single JSON object and NOTHING else.
+- No markdown fences, no ```json blocks, no prose wrapper.
+- Shape: {"verdict": "<one sentence>", "narrative": "<markdown body>"}.
+- `verdict` is a single plain-text sentence (<= 180 chars), no markdown, no
+  trailing newline. It should capture the council's bottom line AND the main
+  nuance (e.g. "Strong buy from value and growth, but macro dissenters flag
+  rate risk on a 12-month horizon").
+- `narrative` is plain Markdown, concise — aim for ~400-600 words total. Do
+  NOT repeat the verdict inside it. Cover: consensus across schools, where
+  it fractures, notable contrarian voices, and what would change minds
+  (catalysts, data gaps). No preamble, no disclaimer — those are added
+  elsewhere.
 """
 
 
@@ -79,10 +111,14 @@ async def synthesize_narrative(
     ticker: str,
     snapshot: Snapshot,
     votes: list[PersonaVote],
-) -> str:
-    """Ask the synthesis model to write the narrative section of the report."""
+) -> tuple[str, str]:
+    """Ask the synthesis model for a one-sentence verdict and a narrative.
+
+    Returns (verdict, narrative). If parsing fails we fall back to the raw
+    content as the narrative with an empty verdict so the report still renders.
+    """
     if not votes:
-        return "_No persona votes were collected. Cannot synthesize narrative._"
+        return ("", "_No persona votes were collected. Cannot synthesize narrative._")
 
     votes_text = _format_votes_for_prompt(votes)
 
@@ -97,17 +133,27 @@ async def synthesize_narrative(
                     f"Snapshot date: {snapshot.as_of}\n\n"
                     f"=== SNAPSHOT ===\n{snapshot.model_dump_json(indent=2)}\n\n"
                     f"=== {len(votes)} COUNCIL VOTES ===\n{votes_text}\n\n"
-                    "Write the synthesis. Structure suggestion:\n"
-                    "1. The verdict in one sentence\n"
-                    "2. Where the council agrees (cross-school consensus)\n"
-                    "3. Where it fractures (which schools split and why)\n"
-                    "4. Notable contrarian voices worth hearing\n"
-                    "5. What would change minds (data gaps, catalysts to watch)\n"
+                    "Return the JSON object described in the system prompt."
                 ),
             },
         ],
-        max_tokens=4000,
+        max_tokens=6000,
     )
 
-    content = response.choices[0].message.content or ""
-    return content.strip() or "_Aggregator returned no text content._"
+    content = (response.choices[0].message.content or "").strip()
+    if not content:
+        return ("", "_Aggregator returned no text content._")
+
+    try:
+        data = extract_json(content)
+    except json.JSONDecodeError:
+        log.warning("aggregator: JSON parse failed, falling back to raw content")
+        return (_salvage_verdict(content), content)
+
+    verdict = (data.get("verdict") or "").strip() if isinstance(data, dict) else ""
+    narrative = (data.get("narrative") or "").strip() if isinstance(data, dict) else ""
+    if not narrative:
+        narrative = content
+    if not verdict:
+        verdict = _salvage_verdict(content)
+    return (verdict, narrative)

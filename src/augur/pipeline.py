@@ -64,22 +64,24 @@ async def run_pipeline(
     failed_ids: list[str] = []
     t_phase2 = time.time()
 
-    async def _one(p: Persona) -> None:
-        async with sem:
-            vote, usage = await run_persona(client, p, ticker, system_message)
-            if vote is not None:
-                votes.append(vote)
-            else:
-                failed_ids.append(p.id)
-            if usage:
-                usage_records.append(usage)
-            ui.render_vote_line(p, vote)
+    with ui.council_progress(total=len(personas)) as step:
 
-    # Prime any provider-side prefix cache with a single call first, then fan out
-    if personas:
-        await _one(personas[0])
-        if len(personas) > 1:
-            await asyncio.gather(*(_one(p) for p in personas[1:]))
+        async def _one(p: Persona) -> None:
+            async with sem:
+                vote, usage = await run_persona(client, p, ticker, system_message)
+                if vote is not None:
+                    votes.append(vote)
+                else:
+                    failed_ids.append(p.id)
+                if usage:
+                    usage_records.append(usage)
+                step(p, vote)
+
+        # Prime any provider-side prefix cache with a single call first, then fan out
+        if personas:
+            await _one(personas[0])
+            if len(personas) > 1:
+                await asyncio.gather(*(_one(p) for p in personas[1:]))
 
     ui.render_council_summary(len(votes), len(personas), time.time() - t_phase2)
 

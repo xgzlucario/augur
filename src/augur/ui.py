@@ -12,7 +12,14 @@ from pathlib import Path
 
 from rich.console import Console, Group
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
@@ -157,26 +164,55 @@ def render_council_preamble(n_personas: int, concurrency: int) -> None:
     )
 
 
-def render_vote_line(persona: Persona, vote: PersonaVote | None) -> None:
+@contextmanager
+def council_progress(total: int):
+    """Live progress bar + spinner for Phase 2.
+
+    Yields a `step(persona, vote)` callback. Each call advances the bar and
+    prints the vote line above the live display — so finished votes scroll
+    normally, the bar stays pinned at the bottom, and the clock keeps ticking.
+    """
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]Council deliberating"),
+        BarColumn(bar_width=None),
+        MofNCompleteColumn(),
+        TextColumn("•"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=True,
+    )
+    task_id = progress.add_task("", total=total)
+    with progress:
+        def step(persona, vote) -> None:
+            progress.console.print(_vote_line(persona, vote))
+            progress.advance(task_id)
+        yield step
+
+
+def _vote_line(persona, vote):
     if vote is None:
-        console.print(Text.assemble(
+        return Text.assemble(
             ("  💀 ", "dim"),
             (f"{persona.name:<24}", "dim strike"),
             (f"[{persona.school}]".ljust(14), "dim"),
             ("failed to vote", "red dim"),
-        ))
-        return
+        )
     color, icon = _action_style(vote.decision.action)
     action = vote.decision.action.upper()
     reason = (vote.decision.key_reasons[0] if vote.decision.key_reasons else "")[:70]
-    console.print(Text.assemble(
+    return Text.assemble(
         (f"  {icon} ", ""),
         (f"{persona.name:<24}", "bold"),
         (f"[{persona.school}]".ljust(14), "dim cyan"),
         (f"{action:<5}", f"bold {color}"),
         ("  ", ""),
         (f"— {reason}" if reason else "", "dim italic"),
-    ))
+    )
+
+
+def render_vote_line(persona: Persona, vote: PersonaVote | None) -> None:
+    console.print(_vote_line(persona, vote))
 
 
 def render_council_summary(n_success: int, n_total: int, duration: float) -> None:

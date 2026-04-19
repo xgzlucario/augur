@@ -19,10 +19,6 @@ Cathie Wood… — each study the same market snapshot, each reason in their own
 voice, each vote independently. A final editor reconciles consensus with
 dissent and writes the augury.
 
-Runs on any **OpenAI-compatible** LLM (OpenAI, DeepSeek, Moonshot, Groq,
-Ollama…). A search key (**Exa** or **Tavily**) is required — training data is
-too stale for this game.
-
 > [中文 README](./README.zh-CN.md)
 
 **Not financial advice.** Research and entertainment.

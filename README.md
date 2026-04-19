@@ -24,6 +24,8 @@ You don't get a generic answer. You get the full argument that produces one.
 
 ---
 
+![augur demo](asserts/demo.gif)
+
 ## Why a council, not just an oracle?
 
 Ask any generic LLM for a stock opinion, and you'll get the watered-down average of every hot take on the internet — equivocal, over-hedged, instantly forgettable. Real investing signal never lives in the middle of the bell curve. It lives in the disagreements between exceptional minds who think wildly differently, and have proven their judgment right enough times to matter.

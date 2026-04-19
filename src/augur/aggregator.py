@@ -33,34 +33,25 @@ def compute_stats(votes: list[PersonaVote]) -> dict:
             "total": 0,
             "by_action": {},
             "by_school": {},
-            "avg_confidence_by_action": {"buy": 0, "hold": 0, "sell": 0},
             "top_reasons": [],
             "top_concerns": [],
         }
 
     action_counts = Counter(v.decision.action for v in votes)
     by_school: dict[str, Counter] = defaultdict(Counter)
-    confidence_sum: dict[str, int] = defaultdict(int)
 
     reasons: Counter = Counter()
     concerns: Counter = Counter()
 
     for v in votes:
         by_school[v.school][v.decision.action] += 1
-        confidence_sum[v.decision.action] += v.decision.confidence
         reasons.update(r.lower().strip() for r in v.decision.key_reasons)
         concerns.update(c.lower().strip() for c in v.decision.concerns)
-
-    avg_conf = {
-        action: (confidence_sum[action] / action_counts[action]) if action_counts[action] else 0
-        for action in ("buy", "hold", "sell")
-    }
 
     return {
         "total": len(votes),
         "by_action": dict(action_counts),
         "by_school": {school: dict(counts) for school, counts in by_school.items()},
-        "avg_confidence_by_action": avg_conf,
         "top_reasons": reasons.most_common(5),
         "top_concerns": concerns.most_common(5),
     }
@@ -73,7 +64,7 @@ def _format_votes_for_prompt(votes: list[PersonaVote]) -> str:
         d = v.decision
         lines.append(
             f"- {v.persona_name} [{v.school}]: {d.action.upper()} "
-            f"(confidence={d.confidence}, horizon={d.time_horizon}, size={d.position_sizing})\n"
+            f"(horizon={d.time_horizon}, size={d.position_sizing})\n"
             f"  reasons: {'; '.join(d.key_reasons)}\n"
             f"  concerns: {'; '.join(d.concerns) if d.concerns else '(none)'}\n"
         )

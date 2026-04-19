@@ -114,16 +114,16 @@ def _render_vote_line(persona: Persona, vote: PersonaVote | None) -> Text:
         )
     color, icon = _action_style(vote.decision.action)
     action = vote.decision.action.upper()
-    conf = vote.decision.confidence
+    sizing = vote.decision.position_sizing
+    horizon = vote.decision.time_horizon
     reason = (vote.decision.key_reasons[0] if vote.decision.key_reasons else "")[:55]
     return Text.assemble(
         (f"  {icon} ", ""),
         (f"{persona.name:<24}", "bold"),
         (f"[{persona.school}]".ljust(14), "dim cyan"),
         (f"{action:<5}", f"bold {color}"),
-        ("  conf ", "dim"),
-        (f"{conf:>3}", color),
         ("  ", ""),
+        (f"{sizing}/{horizon}".ljust(14), "dim"),
         (f"— {reason}" if reason else "", "dim italic"),
     )
 

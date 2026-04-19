@@ -39,7 +39,7 @@ look for.
 **The Council.** Augur fans out one call per master, up to ten in flight. Every
 call sends a byte-identical system prompt (framework + snapshot) so prefix
 caching can kick in. Each master replies with a `PersonaVote` in voice:
-buy/hold/sell, confidence, horizon, sizing, reasons, concerns, a 2–3 paragraph
+buy/hold/sell, horizon, sizing, reasons, concerns, a 2–3 paragraph
 argument. Votes stream back as they land; masters that fail parsing are
 skipped, not fatal.
 

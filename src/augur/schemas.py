@@ -19,7 +19,6 @@ class Snapshot(BaseModel):
 
 class Decision(BaseModel):
     action: Action
-    confidence: int = Field(ge=0, le=100)
     time_horizon: Horizon
     position_sizing: Sizing
     key_reasons: list[str] = Field(max_length=5, min_length=1)

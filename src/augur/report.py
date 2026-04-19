@@ -17,12 +17,11 @@ def _render_stats_section(stats: dict) -> str:
 
     lines = ["## Vote Distribution\n"]
     lines.append(f"**{total} personas voted.**\n")
-    lines.append("| Action | Count | Share | Avg Confidence |")
-    lines.append("|--------|-------|-------|----------------|")
+    lines.append("| Action | Count | Share |")
+    lines.append("|--------|-------|-------|")
     for action in ("buy", "hold", "sell"):
         count = by_action.get(action, 0)
-        avg_conf = stats["avg_confidence_by_action"].get(action, 0)
-        lines.append(f"| {action.upper()} | {count} | {pct.get(action, 0):.0f}% | {avg_conf:.0f} |")
+        lines.append(f"| {action.upper()} | {count} | {pct.get(action, 0):.0f}% |")
 
     lines.append("\n## By School\n")
     lines.append("| School | Buy | Hold | Sell |")
@@ -58,7 +57,7 @@ def _render_vote_roster(votes: list[PersonaVote]) -> str:
             d = v.decision
             lines.append(
                 f"**{v.persona_name}** — **{d.action.upper()}** "
-                f"(conf {d.confidence}, {d.time_horizon}, size {d.position_sizing})\n"
+                f"({d.time_horizon}, size {d.position_sizing})\n"
             )
             lines.append(f"*Reasons:* {'; '.join(d.key_reasons)}  ")
             if d.concerns:

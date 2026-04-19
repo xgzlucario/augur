@@ -35,7 +35,7 @@
 **议事会（The Council）。** Augur 对每位大师各开一次 API 调用（默认 10 个并
 发）。每次调用发送**字节一致**的 system prompt（框架 + 快照），让 provider 的
 自动前缀缓存可以命中。research 模型以大师的口吻返回 `PersonaVote`：
-buy/hold/sell、置信度、时间尺度、仓位、理由、疑虑、2-3 段 in-voice 论述。每一
+buy/hold/sell、时间尺度、仓位、理由、疑虑、2-3 段 in-voice 论述。每一
 票落地即刻流式打到终端；解析失败的大师被跳过，不影响整体。
 
 **神谕（The Augury）。** 本地统计按 action 和学派计票，合成模型通读全部投票，

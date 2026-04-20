@@ -68,6 +68,17 @@ class SnapshotResult:
         self.usage = usage
 
 
+# Matches research_agent's per-tool-message budget so the synthesis model
+# sees the same evidence slice the agent saw, no more no less.
+SNIPPET_TRUNCATE = 1500
+
+
+def _format_hit(r: SearchResult) -> str:
+    date = f" ({r.published_date})" if r.published_date else ""
+    snippet = (r.snippet or "").strip()[:SNIPPET_TRUNCATE]
+    return f"- [{r.title}]{date}\n  {r.url}\n  {snippet}"
+
+
 def _format_search_results(results: dict[str, list[SearchResult]]) -> str:
     lines = []
     for query, hits in results.items():
@@ -76,7 +87,7 @@ def _format_search_results(results: dict[str, list[SearchResult]]) -> str:
             lines.append("(no results)")
             continue
         for r in hits:
-            lines.append(r.format_for_prompt())
+            lines.append(_format_hit(r))
     return "\n".join(lines)
 
 

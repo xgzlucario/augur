@@ -49,8 +49,35 @@ balanced.
 Respond on every turn with a single JSON object — one tool call, no prose,
 no markdown fences:
 
-  {{"tool": "search", "query": "<what you'd type into a search engine>"}}
-  {{"tool": "finish", "reason": "<one sentence: what you established>"}}
+  {{"tool": "search", "query": "<3-6 word natural phrase>"}}
+  {{"tool": "finish", "reason": "<one short sentence, <= 200 chars>"}}
+
+### Query style
+
+Queries must read like what a human would actually type into a search engine.
+Short noun phrases. Not keyword soup.
+
+  GOOD: "AAPL Q2 2026 earnings"
+  GOOD: "Fed rate decision March 2026"
+  GOOD: "iPhone India production 2026"
+  GOOD: "DOJ Apple antitrust ruling"
+  BAD:  "Apple tariff impact China US trade war 2026 iPhone production India Vietnam"
+  BAD:  "Apple Vision Pro Mac MacBook Neo sales 2026 product pipeline"
+  BAD:  "Apple AI strategy 2026 Siri Apple Intelligence Google partnership Gemini"
+
+When a stuffed query would cover 3 angles, issue 3 separate queries instead.
+More focused searches beat one kitchen-sink query.
+
+### Finish style
+
+The reason is a log line, not a report. One sentence, <= 200 chars. Do NOT
+summarize findings — the snapshot synthesis reads the raw results, not your
+reason. Use the reason to say what made you stop.
+
+  GOOD: "Coverage balanced across company, macro, policy, and supply chain; no
+         more high-value angles visible."
+  GOOD: "Web thin on Services segment risk; stopping before diminishing returns."
+  BAD:  A multi-sentence paragraph listing Q1 revenue, EPS, partnerships, etc.
 
 ## Coverage checklist
 
@@ -95,6 +122,22 @@ RESULTS_PER_STEP = 5
 SNIPPET_TRUNCATE = 1500
 API_RETRIES = 3
 MAX_TOKENS_PER_TURN = 1000
+REASON_MAX_CHARS = 200
+
+
+def _clamp_reason(raw: object) -> str:
+    """Clamp finish `reason` to a single short log line.
+
+    Strips whitespace, collapses newlines, truncates to REASON_MAX_CHARS with
+    an ellipsis. The model occasionally writes a full summary here despite the
+    prompt; we refuse to propagate it unchanged.
+    """
+    text = str(raw or "").strip().replace("\n", " ")
+    while "  " in text:
+        text = text.replace("  ", " ")
+    if len(text) > REASON_MAX_CHARS:
+        text = text[: REASON_MAX_CHARS - 1].rstrip() + "…"
+    return text
 
 
 @dataclass
@@ -158,7 +201,7 @@ async def run_research_agent(
         tool = call.get("tool")
 
         if tool == "finish":
-            reason = str(call.get("reason", "")).strip() or "(no reason given)"
+            reason = _clamp_reason(call.get("reason"))
             steps_used = step
             if on_finish is not None:
                 on_finish(reason, len(unique_by_url))
@@ -199,12 +242,12 @@ async def run_research_agent(
         "role": "user",
         "content": (
             "Step budget exhausted. Respond with exactly:\n"
-            '{"tool": "finish", "reason": "<one sentence summarizing coverage and gaps>"}'
+            '{"tool": "finish", "reason": "<one short sentence, <= 200 chars>"}'
         ),
     })
     content = await _ask(client, messages, usage)
     call = _parse_tool_call(content) or {}
-    reason = str(call.get("reason", "")).strip() or "budget exhausted"
+    reason = _clamp_reason(call.get("reason")) or "budget exhausted"
     if on_finish is not None:
         on_finish(reason, len(unique_by_url))
     return _finalize(results_by_query, unique_by_url, max_steps, reason, usage)

@@ -43,8 +43,11 @@ async def run_pipeline(
 
     # Phase 1: snapshot — agent drives search/finish, then synthesis.
     ui.render_phase_rule("Phase 1", ui.SNAPSHOT_QUIPS)
-    ui.console.print(f"  [dim]Research agent — up to {max_research_steps} steps via[/dim] "
-                     f"[bold cyan]{provider.name}[/bold cyan]")
+    ui.console.print(
+        f"  [bold magenta]The Auspex[/bold magenta] "
+        f"[dim italic]watches the flight — up to {max_research_steps} omens via[/dim italic] "
+        f"[bold cyan]{provider.name}[/bold cyan]"
+    )
     snapshot_result = await build_snapshot(
         client,
         ticker,

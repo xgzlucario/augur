@@ -134,7 +134,8 @@ def render_agent_step(step: int, query: str, n_new: int, n_total: int) -> None:
 def render_agent_finish(reason: str, n_unique: int) -> None:
     console.print(Text.assemble(
         ("  ✓ ", "bold green"),
-        (f"finished with {n_unique} unique results", "green"),
+        ("The Auspex ", "bold magenta"),
+        (f"settles with {n_unique} omens", "green"),
         ("  — ", "dim"),
         (reason, "dim italic"),
     ))

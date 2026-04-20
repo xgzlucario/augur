@@ -120,6 +120,30 @@ def transient_spinner(description: str):
         yield
 
 
+@contextmanager
+def auspex_progress(provider_name: str):
+    """Live spinner + clock for Phase 1 while the Auspex searches and synthesizes.
+
+    Per-step `render_agent_step` output prints above the pinned line; the
+    spinner keeps spinning through search turns and the snapshot synthesis
+    that follows.
+    """
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn(
+            f"[bold magenta]The Auspex[/bold magenta] "
+            f"[dim italic]watches the flight via[/dim italic] "
+            f"[bold cyan]{provider_name}[/bold cyan]"
+        ),
+        TimeElapsedColumn(),
+        console=console,
+        transient=True,
+    )
+    progress.add_task("", total=None)
+    with progress:
+        yield
+
+
 def render_agent_step(step: int, query: str, n_new: int, n_total: int) -> None:
     """One line per agent search. Shown above the transient spinner."""
     console.print(Text.assemble(

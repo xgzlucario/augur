@@ -43,20 +43,16 @@ async def run_pipeline(
 
     # Phase 1: snapshot — agent drives search/finish, then synthesis.
     ui.render_phase_rule("Phase 1", ui.SNAPSHOT_QUIPS)
-    ui.console.print(
-        f"  [bold magenta]The Auspex[/bold magenta] "
-        f"[dim italic]watches the flight — up to {max_research_steps} omens via[/dim italic] "
-        f"[bold cyan]{provider.name}[/bold cyan]"
-    )
-    snapshot_result = await build_snapshot(
-        client,
-        ticker,
-        search_provider=provider,
-        max_steps=max_research_steps,
-        on_step=ui.render_agent_step,
-        on_finish=ui.render_agent_finish,
-        lang=lang,
-    )
+    with ui.auspex_progress(provider.name):
+        snapshot_result = await build_snapshot(
+            client,
+            ticker,
+            search_provider=provider,
+            max_steps=max_research_steps,
+            on_step=ui.render_agent_step,
+            on_finish=ui.render_agent_finish,
+            lang=lang,
+        )
     snapshot = snapshot_result.snapshot
     ui.render_snapshot_summary(ticker, snapshot.as_of, len(snapshot.recent_news))
 

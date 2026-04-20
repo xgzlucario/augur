@@ -30,8 +30,6 @@ packages = ["src/augur"]
 include = [
     "src/augur",
     "personas",
-    "README.md",
-    "README.zh-CN.md",
     "pyproject.toml",
     ".env.example",
 ]

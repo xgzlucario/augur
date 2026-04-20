@@ -59,9 +59,9 @@ Before calling finish, you should have touched most of:
 
   Company
   - Fundamentals: revenue, margins, balance sheet
-  - Latest earnings and forward guidance
-  - Analyst sentiment and price targets
-  - Competitive / sector positioning
+  - Latest earnings, management guidance, disclosed outlook
+  - Products, customers, end-markets, competitive position
+  - Insider moves, buybacks, dividends, material filings
 
   Backdrop (as important as fundamentals)
   - Macro regime: rates, inflation, cycle, FX, liquidity
@@ -74,6 +74,11 @@ Collect both bull and bear evidence across all of the above.
 
 ## Principles
 
+- Facts over opinions. Prefer filings, earnings calls, disclosed numbers,
+  price action, and dated events you can verify. AVOID sell-side analyst
+  ratings and price targets — they're subjective, lagging, and rarely
+  free of the issuer's business interests. The council has its own
+  opinions; your job is the raw material they reason from.
 - Recency: today is {as_of}. Trust the web over memory; search for the
   fiscal period an analyst would actually read today, not round-number
   years like "2024" out of habit.

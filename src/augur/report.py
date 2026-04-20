@@ -56,8 +56,7 @@ def _render_vote_roster(votes: list[PersonaVote]) -> str:
         for v in by_school[school]:
             d = v.decision
             lines.append(
-                f"**{v.persona_name}** — **{d.action.upper()}** "
-                f"({d.time_horizon}, size {d.position_sizing})\n"
+                f"**{v.persona_name}** — **{d.action.upper()}**\n"
             )
             lines.append(f"*Reasons:* {'; '.join(d.key_reasons)}  ")
             if d.concerns:

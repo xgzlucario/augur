@@ -3,8 +3,6 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Action = Literal["buy", "hold", "sell"]
-Horizon = Literal["short", "medium", "long"]
-Sizing = Literal["none", "small", "medium", "large"]
 
 
 class Snapshot(BaseModel):
@@ -19,8 +17,6 @@ class Snapshot(BaseModel):
 
 class Decision(BaseModel):
     action: Action
-    time_horizon: Horizon
-    position_sizing: Sizing
     key_reasons: list[str] = Field(max_length=5, min_length=1)
     concerns: list[str] = Field(max_length=3)
 

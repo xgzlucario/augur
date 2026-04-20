@@ -50,8 +50,7 @@ def _format_votes_for_prompt(votes: list[PersonaVote]) -> str:
     for v in votes:
         d = v.decision
         lines.append(
-            f"- {v.persona_name} [{v.school}]: {d.action.upper()} "
-            f"(horizon={d.time_horizon}, size={d.position_sizing})\n"
+            f"- {v.persona_name} [{v.school}]: {d.action.upper()}\n"
             f"  reasons: {'; '.join(d.key_reasons)}\n"
             f"  concerns: {'; '.join(d.concerns) if d.concerns else '(none)'}\n"
         )

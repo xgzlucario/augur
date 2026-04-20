@@ -32,8 +32,6 @@ OUTPUT RULES (critical):
     "school": string,
     "decision": {
       "action": "buy" | "hold" | "sell",
-      "time_horizon": "short" | "medium" | "long",
-      "position_sizing": "none" | "small" | "medium" | "large",
       "key_reasons": array of 1-5 strings,
       "concerns": array of up to 3 strings
     },

@@ -75,7 +75,7 @@ Produce a PersonaVote with:
 - persona_id: "{persona.id}"
 - persona_name: "{persona.name}"
 - school: "{persona.school}"
-- decision: your verdict (action, time_horizon, position_sizing, key_reasons, concerns)
+- decision: your verdict (action, key_reasons, concerns)
 - reasoning: 2-3 paragraphs in your voice explaining the decision
 
 Be decisive. No waffling. If the snapshot lacks the data you need, say so in

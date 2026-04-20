@@ -69,11 +69,13 @@ and structured — the deterministic vote statistics are rendered separately.
 
 OUTPUT RULES (critical):
 - Respond with a single JSON object and NOTHING else.
-- Shape: {"verdict": "<one sentence>", "narrative": "<markdown body>"}.
-- `verdict` is a single plain-text sentence (<= 180 chars), no markdown, no
-  trailing newline. It should capture the council's bottom line AND the main
-  nuance (e.g. "Strong buy from value and growth, but macro dissenters flag
-  rate risk on a 12-month horizon").
+- Shape: {"verdict": "<two to three sentences>", "narrative": "<markdown body>"}.
+- `verdict` is two or three plain-text sentences (<= 500 chars total), no
+  markdown, no trailing newline. Use the space to name the council's bottom
+  line, the main fracture, and the key nuance — not a bumper sticker. For
+  example: "Lean BUY. Value and growth schools converge on durable FCF and
+  pricing power, while macro dissenters flag rate sensitivity. The case
+  rests on execution through the next guidance cycle."
 - `narrative` is plain Markdown, concise — aim for ~400-600 words total. Do
   NOT repeat the verdict inside it. Cover: consensus across schools, where
   it fractures, notable contrarian voices, and what would change minds

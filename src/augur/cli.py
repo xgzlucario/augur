@@ -55,7 +55,7 @@ def run(
         typer.Option(
             "--max-steps",
             help="Max research-agent steps in Phase 1 "
-            "(env AUGUR_MAX_RESEARCH_STEPS, default 8).",
+            "(env AUGUR_MAX_RESEARCH_STEPS, default 10).",
         ),
     ] = None,
     lang: Annotated[
@@ -95,7 +95,7 @@ def run(
 
     if max_steps is None:
         env_val = os.environ.get("AUGUR_MAX_RESEARCH_STEPS")
-        max_steps = int(env_val) if env_val and env_val.isdigit() else 8
+        max_steps = int(env_val) if env_val and env_val.isdigit() else 10
 
     try:
         result = asyncio.run(

@@ -123,7 +123,7 @@ async def build_snapshot(
     client: AsyncOpenAI,
     ticker: str,
     search_provider: SearchProvider,
-    max_steps: int = 8,
+    max_steps: int = 10,
     on_step: Callable[[int, str, int, int], None] | None = None,
     on_finish: Callable[[str, int], None] | None = None,
     lang: str = "en",

@@ -90,7 +90,7 @@ Collect both bull and bear evidence across all of the above.
 """
 
 
-MAX_STEPS_DEFAULT = 8
+MAX_STEPS_DEFAULT = 10
 RESULTS_PER_STEP = 5
 SNIPPET_TRUNCATE = 1500
 API_RETRIES = 3

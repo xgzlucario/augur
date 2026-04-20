@@ -36,7 +36,7 @@ async def run_pipeline(
     concurrency: int,
     provider: SearchProvider,
     lang: str,
-    max_research_steps: int = 8,
+    max_research_steps: int = 10,
 ) -> PipelineResult:
     client = get_client()
     t_start = time.time()

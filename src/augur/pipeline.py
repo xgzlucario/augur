@@ -36,21 +36,25 @@ async def run_pipeline(
     concurrency: int,
     provider: SearchProvider,
     lang: str,
+    max_research_steps: int = 8,
 ) -> PipelineResult:
     client = get_client()
     t_start = time.time()
 
-    # Phase 1: snapshot
+    # Phase 1: snapshot — agent drives search/finish, then synthesis.
     ui.render_phase_rule("Phase 1", ui.SNAPSHOT_QUIPS)
-    with ui.transient_spinner(f"[cyan]Reading the signs via {provider.name}..."):
-        snapshot = await build_snapshot(
-            client,
-            ticker,
-            search_provider=provider,
-            on_queries=lambda qs: ui.render_planned_queries(provider.name, qs),
-            on_search_results=ui.render_search_summary,
-            lang=lang,
-        )
+    ui.console.print(f"  [dim]Research agent — up to {max_research_steps} steps via[/dim] "
+                     f"[bold cyan]{provider.name}[/bold cyan]")
+    snapshot_result = await build_snapshot(
+        client,
+        ticker,
+        search_provider=provider,
+        max_steps=max_research_steps,
+        on_step=ui.render_agent_step,
+        on_finish=ui.render_agent_finish,
+        lang=lang,
+    )
+    snapshot = snapshot_result.snapshot
     ui.render_snapshot_summary(ticker, snapshot.as_of, len(snapshot.recent_news))
 
     # Phase 2: council — stream each vote as it lands
@@ -92,10 +96,17 @@ async def run_pipeline(
         )
 
     run_stats = RunStats(
-        total_input_tokens=sum(u.get("prompt_tokens", 0) for u in usage_records),
-        total_output_tokens=sum(u.get("completion_tokens", 0) for u in usage_records),
+        total_input_tokens=(
+            sum(u.get("prompt_tokens", 0) for u in usage_records)
+            + snapshot_result.usage.get("prompt_tokens", 0)
+        ),
+        total_output_tokens=(
+            sum(u.get("completion_tokens", 0) for u in usage_records)
+            + snapshot_result.usage.get("completion_tokens", 0)
+        ),
         failed_personas=failed_ids,
         duration_seconds=time.time() - t_start,
+        research_steps=snapshot_result.steps_used,
     )
     return PipelineResult(
         votes=votes,

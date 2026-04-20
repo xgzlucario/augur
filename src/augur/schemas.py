@@ -38,3 +38,4 @@ class RunStats(BaseModel):
     total_output_tokens: int = 0
     failed_personas: list[str] = Field(default_factory=list)
     duration_seconds: float = 0.0
+    research_steps: int = 0

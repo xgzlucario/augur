@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -49,6 +50,14 @@ def run(
     ] = None,
     out: Annotated[Path | None, typer.Option(help="Output directory for reports")] = None,
     concurrency: Annotated[int, typer.Option(help="Max concurrent persona calls")] = 10,
+    max_steps: Annotated[
+        int | None,
+        typer.Option(
+            "--max-steps",
+            help="Max research-agent steps in Phase 1 "
+            "(env AUGUR_MAX_RESEARCH_STEPS, default 8).",
+        ),
+    ] = None,
     lang: Annotated[
         str,
         typer.Option(
@@ -84,9 +93,16 @@ def run(
 
     ui.render_banner(ticker, len(selected), concurrency, provider.name)
 
+    if max_steps is None:
+        env_val = os.environ.get("AUGUR_MAX_RESEARCH_STEPS")
+        max_steps = int(env_val) if env_val and env_val.isdigit() else 8
+
     try:
         result = asyncio.run(
-            run_pipeline(ticker, selected, concurrency, provider, lang)
+            run_pipeline(
+                ticker, selected, concurrency, provider, lang,
+                max_research_steps=max_steps,
+            )
         )
     except QueryPlanningError as e:
         ui.render_error_panel(

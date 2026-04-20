@@ -1,4 +1,10 @@
-import json
+"""Phase 1: build a market snapshot grounded in live web search.
+
+The research half is delegated to `research_agent.run_research_agent`, which
+drives a search/finish tool loop. The synthesis half (structured Snapshot from
+raw results) stays here.
+"""
+
 import logging
 from datetime import date
 from typing import Callable
@@ -7,86 +13,20 @@ from openai import AsyncOpenAI
 
 from augur.client import get_model_synthesis, language_instruction
 from augur.json_utils import extract_json
+from augur.research_agent import (
+    QueryPlanningError,
+    SearchFailedError,
+    run_research_agent,
+)
 from augur.schemas import Snapshot
-from augur.search import SearchProvider, SearchResult, run_queries
+from augur.search import SearchProvider, SearchResult
 
 log = logging.getLogger(__name__)
 
+# Re-exports: cli.py imports these error types from snapshot. Keep the seam
+# stable so external callers don't need to learn the new module.
+__all__ = ["QueryPlanningError", "SearchFailedError", "SnapshotResult", "build_snapshot"]
 
-class QueryPlanningError(RuntimeError):
-    """Raised when the LLM fails to produce a valid search-query plan."""
-
-
-class SearchFailedError(RuntimeError):
-    """Raised when the search provider returns no usable results."""
-
-
-# ---------- Prompt 1: query planner ----------
-
-PLANNER_SYSTEM = """You are a research analyst planning a web search for a ticker.
-
-Given a ticker, produce 4-6 diverse search queries that together build a
-multi-faceted picture: fundamentals, recent earnings, analyst sentiment,
-competitive landscape, and macro/sector context. The queries will be executed
-verbatim against a web search engine, so phrase them as someone would type them.
-
-OUTPUT RULES (critical):
-- Respond with a single JSON object and NOTHING else.
-- The object must have exactly one key "queries" whose value is a string array.
-
-Example of the ONLY acceptable output format:
-{"queries": ["AAPL Q4 2025 earnings", "AAPL analyst price target 2026", "AAPL iPhone China sales", "AAPL services revenue growth"]}
-"""
-
-
-async def _plan_queries(client: AsyncOpenAI, ticker: str, as_of: str) -> list[str]:
-    response = await client.chat.completions.create(
-        model=get_model_synthesis(),
-        messages=[
-            {"role": "system", "content": PLANNER_SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"Ticker: {ticker}. Today is {as_of}. "
-                    "Plan 4-6 web search queries to build a balanced market snapshot."
-                ),
-            },
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-    )
-
-    content = response.choices[0].message.content or ""
-    try:
-        data = extract_json(content)
-    except json.JSONDecodeError as e:
-        raise QueryPlanningError(
-            f"query planner returned unparsable output: {e}. "
-            f"First 300 chars of response: {content[:300]!r}"
-        ) from e
-
-    if not isinstance(data, dict):
-        raise QueryPlanningError(
-            f"query planner returned non-object JSON: {type(data).__name__}. "
-            f"Content: {content[:300]!r}"
-        )
-
-    raw_queries = data.get("queries")
-    if not isinstance(raw_queries, list) or not raw_queries:
-        raise QueryPlanningError(
-            f"query planner JSON missing non-empty 'queries' array. "
-            f"Got: {data!r}"
-        )
-
-    queries = [str(q).strip() for q in raw_queries if str(q).strip()]
-    if not queries:
-        raise QueryPlanningError(
-            f"query planner returned only empty queries. Got: {raw_queries!r}"
-        )
-    return queries
-
-
-# ---------- Prompt 2: synthesize snapshot from search results ----------
 
 SNAPSHOT_FROM_SEARCH_SYSTEM = """You are a senior equity research analyst.
 
@@ -116,6 +56,18 @@ OUTPUT RULES (critical):
 """
 
 
+class SnapshotResult:
+    """Tuple-ish return for build_snapshot. Dataclass would work too; we keep
+    it light because only the pipeline reads it."""
+
+    __slots__ = ("snapshot", "steps_used", "usage")
+
+    def __init__(self, snapshot: Snapshot, steps_used: int, usage: dict) -> None:
+        self.snapshot = snapshot
+        self.steps_used = steps_used
+        self.usage = usage
+
+
 def _format_search_results(results: dict[str, list[SearchResult]]) -> str:
     lines = []
     for query, hits in results.items():
@@ -133,6 +85,7 @@ async def _synthesize_from_search(
     ticker: str,
     as_of: str,
     results: dict[str, list[SearchResult]],
+    usage: dict,
     lang: str = "en",
 ) -> Snapshot:
     search_text = _format_search_results(results)
@@ -154,6 +107,9 @@ async def _synthesize_from_search(
         ],
         temperature=0.1,
     )
+    if response.usage is not None:
+        usage["prompt_tokens"] += response.usage.prompt_tokens
+        usage["completion_tokens"] += response.usage.completion_tokens
     content = response.choices[0].message.content
     if not content:
         raise RuntimeError(f"snapshot synthesis returned empty content for {ticker}")
@@ -163,50 +119,47 @@ async def _synthesize_from_search(
     return snapshot
 
 
-# ---------- Public entry point ----------
-
-
 async def build_snapshot(
     client: AsyncOpenAI,
     ticker: str,
     search_provider: SearchProvider,
-    on_queries: Callable[[list[str]], None] | None = None,
-    on_search_results: Callable[[int, int], None] | None = None,
+    max_steps: int = 8,
+    on_step: Callable[[int, str, int, int], None] | None = None,
+    on_finish: Callable[[str, int], None] | None = None,
     lang: str = "en",
-) -> Snapshot:
-    """Phase 1: produce a market snapshot grounded in live web search.
-
-    Plan queries → execute search → synthesize snapshot from results.
-    There is no LLM-only fallback: stale training knowledge is worse than
-    an explicit failure.
+) -> SnapshotResult:
+    """Phase 1 entry point: agentic research loop + synthesis.
 
     Callbacks (optional):
-      on_queries(queries) — invoked with the planned query list before search.
-      on_search_results(total_hits, n_queries) — invoked after search completes.
+      on_step(step, query, n_new, n_total_unique) — fired after each search.
+      on_finish(reason, n_total_unique) — fired once the agent calls finish.
 
     Raises:
-      QueryPlanningError — LLM failed to produce a valid query plan.
-      SearchFailedError — search returned zero results across all queries.
+      QueryPlanningError — agent could not drive a usable trajectory.
+      SearchFailedError — agent finished with zero unique results.
     """
     as_of = date.today().isoformat()
+    log.info(f"starting research agent for {ticker} via {search_provider.name}")
 
-    log.info(f"planning search queries for {ticker} via {search_provider.name}")
-    queries = await _plan_queries(client, ticker, as_of)
-    log.info(f"running {len(queries)} queries: {queries}")
-    if on_queries is not None:
-        on_queries(queries)
+    agent_result = await run_research_agent(
+        client,
+        ticker=ticker,
+        as_of=as_of,
+        provider=search_provider,
+        max_steps=max_steps,
+        on_step=on_step,
+        on_finish=on_finish,
+        lang=lang,
+    )
 
-    results = await run_queries(search_provider, queries, num_results_per_query=10)
-    total_hits = sum(len(v) for v in results.values())
-    log.info(f"collected {total_hits} results across {len(queries)} queries")
-    if on_search_results is not None:
-        on_search_results(total_hits, len(queries))
+    log.info(
+        f"agent finished: {agent_result.steps_used} steps, "
+        f"{sum(len(v) for v in agent_result.results_by_query.values())} total hits, "
+        f"{len(agent_result.results_by_query)} unique queries"
+    )
 
-    if total_hits == 0:
-        raise SearchFailedError(
-            f"{search_provider.name} returned zero results across all "
-            f"{len(queries)} queries for {ticker}. "
-            f"Check the provider's status/quota or try a different ticker."
-        )
-
-    return await _synthesize_from_search(client, ticker, as_of, results, lang=lang)
+    usage = dict(agent_result.usage)
+    snapshot = await _synthesize_from_search(
+        client, ticker, as_of, agent_result.results_by_query, usage, lang=lang
+    )
+    return SnapshotResult(snapshot=snapshot, steps_used=agent_result.steps_used, usage=usage)

@@ -120,27 +120,23 @@ def transient_spinner(description: str):
         yield
 
 
-def render_planned_queries(provider_name: str, queries: list[str]) -> None:
-    if not queries:
-        return
+def render_agent_step(step: int, query: str, n_new: int, n_total: int) -> None:
+    """One line per agent search. Shown above the transient spinner."""
     console.print(Text.assemble(
-        ("  ", ""),
-        (f"Planned {len(queries)} ", "dim"),
-        (f"{provider_name} ", "bold cyan"),
-        ("queries:", "dim"),
+        (f"  {step}. ", "dim cyan"),
+        (query, "italic"),
+        ("  → ", "dim"),
+        (f"{n_new} new", "bold green" if n_new else "dim"),
+        (f" ({n_total} unique)", "dim"),
     ))
-    for i, q in enumerate(queries, 1):
-        console.print(Text.assemble(
-            (f"     {i}. ", "dim cyan"),
-            (q, "italic"),
-        ))
 
 
-def render_search_summary(total_hits: int, n_queries: int) -> None:
+def render_agent_finish(reason: str, n_unique: int) -> None:
     console.print(Text.assemble(
-        ("  ", ""),
-        (f"Got {total_hits} results ", "bold green"),
-        (f"across {n_queries} queries", "dim"),
+        ("  ✓ ", "bold green"),
+        (f"finished with {n_unique} unique results", "green"),
+        ("  — ", "dim"),
+        (reason, "dim italic"),
     ))
 
 
